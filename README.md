@@ -1,5 +1,9 @@
 # OpenTranscribe MCP
 
+<p align="center">
+  <img src="docs/assets/open-transcribe-hero.jpg" alt="OpenTranscribe MCP turns recorder audio into a provider-independent transcript" width="100%">
+</p>
+
 **Own the recorder. Choose the intelligence.**
 
 OpenTranscribe is an open-source MCP server that routes audio to the speech-to-text model of your choice and returns one provider-independent transcript schema.
@@ -7,6 +11,16 @@ OpenTranscribe is an open-source MCP server that routes audio to the speech-to-t
 It is built around a simple idea: buying a great recorder should not lock you into one transcription subscription. Use Plaud, a phone, an open-source wearable, or any other audio source you are authorized to access, then choose Microsoft MAI, ElevenLabs Scribe, or Groq Whisper without changing the downstream workflow.
 
 OpenTranscribe does not jailbreak hardware or bypass access controls. It works only with audio the operator is authorized to access.
+
+## How it works
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/transcription-pipeline-dark.jpg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/transcription-pipeline-light.jpg">
+  <img src="docs/assets/transcription-pipeline-light.jpg" alt="Audio flows from a recorder through OpenTranscribe MCP and a selectable speech-to-text provider into one canonical transcript schema for downstream workflows" width="100%">
+</picture>
+
+OpenTranscribe keeps the integration boundary stable: the recorder supplies an audio file or HTTPS URL, the server selects or calls the requested speech-to-text provider, and downstream tools receive the same canonical transcript shape.
 
 ## What v0.1 ships
 
