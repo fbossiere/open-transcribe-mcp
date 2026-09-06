@@ -1,5 +1,7 @@
 # OpenTranscribe MCP
 
+<!-- mcp-name: io.github.fbossiere/open-transcribe-mcp -->
+
 [![CI](https://github.com/fbossiere/open-transcribe-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/fbossiere/open-transcribe-mcp/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/fbossiere/open-transcribe-mcp/actions/workflows/codeql.yml/badge.svg)](https://github.com/fbossiere/open-transcribe-mcp/actions/workflows/codeql.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
@@ -99,14 +101,14 @@ Provider choice does not alter the response contract. Set `provider` and `model`
 ## Docker
 
 ```bash
-docker build -t open-transcribe-mcp:0.1.0 .
+docker build -t open-transcribe-mcp:0.1.1 .
 docker run --rm -p 8000:8000 \
   -e OT_ENVIRONMENT=prod \
   -e OT_MICROSOFT__ENDPOINT="https://YOUR-RESOURCE.cognitiveservices.azure.com" \
   -e OT_MICROSOFT__API_KEY="YOUR-KEY" \
   -e OT_SECURITY__AUTH_MODE=bearer \
   -e OT_SECURITY__BEARER_TOKEN="YOUR-RANDOM-TOKEN" \
-  open-transcribe-mcp:0.1.0
+  open-transcribe-mcp:0.1.1
 ```
 
 ## Configuration
@@ -157,6 +159,7 @@ Transcript content is untrusted data. OpenTranscribe never interprets it as inst
 - [Security model](docs/security.md)
 - [Privacy and retention](docs/privacy.md)
 - [Scaleway deployment](docs/deploy-scaleway.md)
+- [Release process](docs/releasing.md)
 - [Plaud recipe](docs/recipes/plaud.md)
 - [ChatGPT + Google Drive recipe](docs/recipes/chatgpt-gdrive.md)
 - [Contributing](CONTRIBUTING.md)

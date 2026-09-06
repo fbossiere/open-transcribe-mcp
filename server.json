@@ -1,0 +1,80 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.fbossiere/open-transcribe-mcp",
+  "title": "OpenTranscribe MCP",
+  "description": "Provider-independent speech-to-text with normalized transcripts over MCP.",
+  "repository": {
+    "url": "https://github.com/fbossiere/open-transcribe-mcp",
+    "source": "github",
+    "id": "1358914807"
+  },
+  "version": "0.1.1",
+  "websiteUrl": "https://github.com/fbossiere/open-transcribe-mcp",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
+      "identifier": "open-transcribe-mcp",
+      "version": "0.1.1",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "streamable-http",
+        "url": "http://127.0.0.1:{OT_PORT}/mcp",
+        "headers": [
+          {
+            "name": "Authorization",
+            "description": "Bearer token configured for the local OpenTranscribe server.",
+            "isRequired": true,
+            "isSecret": true,
+            "value": "Bearer {OT_SECURITY__BEARER_TOKEN}",
+            "variables": {
+              "OT_SECURITY__BEARER_TOKEN": {
+                "description": "A strong, random token shared with the local MCP client.",
+                "isRequired": true,
+                "isSecret": true
+              }
+            }
+          }
+        ]
+      },
+      "environmentVariables": [
+        {
+          "name": "OT_HOST",
+          "description": "Loopback address used by the locally installed server.",
+          "value": "127.0.0.1"
+        },
+        {
+          "name": "OT_PORT",
+          "description": "Port used by the locally installed Streamable HTTP server.",
+          "default": "8000"
+        },
+        {
+          "name": "OT_SECURITY__BEARER_TOKEN",
+          "description": "A strong, random token shared with the local MCP client.",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "OT_MICROSOFT__ENDPOINT",
+          "description": "Optional Microsoft Speech resource endpoint.",
+          "placeholder": "https://YOUR-RESOURCE.cognitiveservices.azure.com"
+        },
+        {
+          "name": "OT_MICROSOFT__API_KEY",
+          "description": "Optional Microsoft Speech API key.",
+          "isSecret": true
+        },
+        {
+          "name": "OT_ELEVENLABS__API_KEY",
+          "description": "Optional ElevenLabs API key.",
+          "isSecret": true
+        },
+        {
+          "name": "OT_GROQ__API_KEY",
+          "description": "Optional Groq API key.",
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}
