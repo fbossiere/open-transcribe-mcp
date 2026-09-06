@@ -69,6 +69,81 @@ jobs:
       - name: Build source and wheel distributions
         run: uv build
 
+      - name: Inspect distribution contents
+        run: python scripts/check_distribution.py
+
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: latest-known
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install locked documentation dependencies
+        run: uv sync --locked --extra dev
+
+      - name: Build documentation strictly
+        run: uv run mkdocs build --strict
+
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: latest-known
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install locked dependencies
+        run: uv sync --locked --extra dev --extra s3
+
+      - name: Audit Python dependencies
+        run: uv run pip-audit
+
+      - name: Install checksum-verified Trivy
+        run: scripts/install-trivy.sh "$RUNNER_TEMP/trivy-bin"
+
+      - name: Scan repository
+        run: >-
+          "$RUNNER_TEMP/trivy-bin/trivy" fs
+          --scanners vuln,secret,misconfig
+          --skip-dirs .git
+          --skip-dirs .venv
+          --severity HIGH,CRITICAL
+          --ignore-unfixed
+          --exit-code 1
+          .
+
+      - name: Build container for scanning
+        run: docker build --tag open-transcribe-ci:${{ github.sha }} .
+
+      - name: Scan container
+        run: >-
+          "$RUNNER_TEMP/trivy-bin/trivy" image
+          --scanners vuln,secret
+          --severity HIGH,CRITICAL
+          --ignore-unfixed
+          --exit-code 1
+          open-transcribe-ci:${{ github.sha }}
+
   terraform:
     name: terraform
     runs-on: ubuntu-latest

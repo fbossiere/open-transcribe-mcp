@@ -1,0 +1,26 @@
+site_name: OpenTranscribe MCP
+site_description: Provider-independent speech-to-text over MCP.
+repo_url: https://github.com/fbossiere/open-transcribe-mcp
+edit_uri: edit/main/docs/
+strict: true
+
+theme:
+  name: mkdocs
+
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - Providers: providers.md
+  - Security: security.md
+  - Privacy: privacy.md
+  - Deploy on Scaleway: deploy-scaleway.md
+  - Recipes:
+      - Plaud: recipes/plaud.md
+      - ChatGPT and Google Drive: recipes/chatgpt-gdrive.md
+  - Releasing: releasing.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true

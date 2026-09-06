@@ -4,7 +4,7 @@ The reference target is **Scaleway Serverless Containers**, not Cloud Functions.
 
 OpenTranscribe is a containerized ASGI service exposing MCP Streamable HTTP. Serverless Containers runs the existing OCI image and HTTP process directly, supports long requests and scale-to-zero, and does not require a function-specific handler or packaging model.
 
-The Terraform root module is in [`infra/scaleway`](../infra/scaleway/README.md). It provisions a private Container Registry namespace, a Serverless Containers namespace, the application container, and optional TTL-bound Object Storage.
+The Terraform root module is in [`infra/scaleway`](https://github.com/fbossiere/open-transcribe-mcp/tree/main/infra/scaleway). It provisions a private Container Registry namespace, a Serverless Containers namespace, the application container, and optional TTL-bound Object Storage.
 
 ## Reference sizing
 
