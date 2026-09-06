@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/fbossiere/open-transcribe-mcp/security/advisories/new
+    about: Do not disclose vulnerabilities in public issues.
+  - name: Read the support policy
+    url: https://github.com/fbossiere/open-transcribe-mcp/blob/main/SUPPORT.md
+    about: Check supported questions and response expectations before opening an issue.
+

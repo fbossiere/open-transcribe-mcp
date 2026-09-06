@@ -4,6 +4,12 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Added
+
+- structured issue forms, pull-request template, code ownership, governance, and support policy;
+- pinned GitHub Actions workflows for quality checks, builds, CodeQL, and dependency review;
+- weekly Dependabot updates for Python and GitHub Actions dependencies.
+
 ## [0.1.0] - 2026-09-06
 
 ### Added

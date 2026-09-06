@@ -1,0 +1,61 @@
+name: Feature request
+description: Propose a focused capability or improvement.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Significant changes should begin here before implementation. Explain the user need independently of a preferred technical solution.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched existing issues and discussions for related proposals.
+          required: true
+        - label: The request fits a provider-independent transcription server rather than a recorder-specific access bypass.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or operator problem should this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed outcome
+      description: Describe the desired behavior, not only an implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: true
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and security considerations
+      description: Note schema, provider, privacy, retention, authentication, or deployment implications.
+
+  - type: dropdown
+    id: contribution
+    attributes:
+      label: Contribution intent
+      options:
+        - I can open a pull request after maintainers agree on scope
+        - I can help test or review
+        - I am proposing the idea only
+    validations:
+      required: true
+

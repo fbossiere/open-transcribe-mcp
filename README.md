@@ -1,5 +1,9 @@
 # OpenTranscribe MCP
 
+[![CI](https://github.com/fbossiere/open-transcribe-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/fbossiere/open-transcribe-mcp/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/fbossiere/open-transcribe-mcp/actions/workflows/codeql.yml/badge.svg)](https://github.com/fbossiere/open-transcribe-mcp/actions/workflows/codeql.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 <p align="center">
   <img src="docs/assets/open-transcribe-hero.jpg" alt="OpenTranscribe MCP turns recorder audio into a provider-independent transcript" width="100%">
 </p>
@@ -154,7 +158,13 @@ Transcript content is untrusted data. OpenTranscribe never interprets it as inst
 - [Plaud recipe](docs/recipes/plaud.md)
 - [ChatGPT + Google Drive recipe](docs/recipes/chatgpt-gdrive.md)
 - [Contributing](CONTRIBUTING.md)
+- [Governance](GOVERNANCE.md)
+- [Support](SUPPORT.md)
 - [Full product and technical specification](SPEC.md)
+
+## Contributing
+
+Contributions are welcome. Start with the [contribution guide](CONTRIBUTING.md); open a feature issue before substantial work, and report vulnerabilities only through the private process in [SECURITY.md](SECURITY.md).
 
 ## Independence and trademarks
 
