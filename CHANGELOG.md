@@ -4,6 +4,15 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Added
+
+- Production-oriented Terraform for Scaleway Serverless Containers, including a private registry, scale-to-zero defaults, probes, secret validation, and optional least-privilege temporary Object Storage.
+- Terraform formatting and validation workflow.
+
+### Changed
+
+- The production Docker image now includes the optional S3 result-store dependency.
+
 ## [0.1.0] - 2026-09-06
 
 ### Added
