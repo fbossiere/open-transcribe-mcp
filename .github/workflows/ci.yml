@@ -69,3 +69,47 @@ jobs:
       - name: Build source and wheel distributions
         run: uv build
 
+  terraform:
+    name: terraform
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: infra/scaleway
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Terraform
+        env:
+          TERRAFORM_VERSION: 1.16.1
+        run: |
+          curl --fail --silent --show-error --location \
+            https://apt.releases.hashicorp.com/gpg \
+            --output /tmp/hashicorp.asc
+          test "$(gpg --show-keys --with-colons /tmp/hashicorp.asc | awk -F: '$1 == "fpr" { print $10; exit }')" \
+            = "798AEC654E5C15428C8E42EEAA16FCBCA621E701"
+          gpg --dearmor --output /tmp/hashicorp.gpg /tmp/hashicorp.asc
+          sudo install -o root -g root -m 0644 /tmp/hashicorp.gpg \
+            /usr/share/keyrings/hashicorp-archive-keyring.gpg
+          release_name="$(. /etc/os-release && echo "$VERSION_CODENAME")"
+          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com ${release_name} main" \
+            | sudo tee /etc/apt/sources.list.d/hashicorp.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            "terraform=${TERRAFORM_VERSION}-1"
+          terraform version
+
+      - name: Check formatting
+        run: terraform fmt -check -diff -recursive
+
+      - name: Initialize providers
+        run: terraform init -backend=false -input=false
+
+      - name: Validate configuration
+        run: terraform validate -no-color

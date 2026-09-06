@@ -6,10 +6,10 @@ COPY --from=uv /uv /usr/local/bin/uv
 WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 COPY pyproject.toml uv.lock README.md ./
-RUN uv sync --frozen --no-dev --no-install-project
+RUN uv sync --frozen --no-dev --extra s3 --no-install-project
 COPY src ./src
 COPY config ./config
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --extra s3
 
 FROM python:3.12-slim AS runtime
 RUN groupadd --system --gid 10001 app && useradd --system --uid 10001 --gid app --home /nonexistent app

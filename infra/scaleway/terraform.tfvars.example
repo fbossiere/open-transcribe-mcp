@@ -1,0 +1,20 @@
+project_id = "00000000-0000-0000-0000-000000000000"
+region     = "fr-par"
+image_tag  = "0.1.0"
+
+environment_variables = {
+  OT_DEFAULT_PROVIDER    = "microsoft"
+  OT_DEFAULT_MODEL       = "MAI-Transcribe-2"
+  OT_MICROSOFT__ENDPOINT = "https://YOUR-RESOURCE.cognitiveservices.azure.com"
+}
+
+secret_environment_variables = {
+  OT_SECURITY__BEARER_TOKEN = "replace-with-a-long-random-value"
+  OT_MICROSOFT__API_KEY      = "replace-with-your-provider-key"
+}
+
+# Optional durable, TTL-bound storage for chunked results. The Docker image must
+# include the project's `s3` extra. Add OT_RESULT_STORE__CURSOR_SECRET above.
+enable_result_store = false
+
+tags = ["environment=production"]

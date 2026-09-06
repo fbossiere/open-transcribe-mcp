@@ -37,7 +37,7 @@ OpenTranscribe keeps the integration boundary stable: the recorder supplies an a
 - HTTPS URL passthrough when supported and a bounded streaming proxy otherwise
 - SSRF controls, signed-URL redaction, zero content logging, and cost/resource limits
 - disabled-by-default retention; optional memory or S3-compatible temporary result storage
-- Docker, Scaleway Serverless Containers guidance, tests, and GitHub Actions CI
+- Docker, production-oriented Scaleway Serverless Containers Terraform, tests, and GitHub Actions CI
 
 ## Ten-minute quickstart
 
@@ -123,6 +123,8 @@ OT_RESULT_STORE__CURSOR_SECRET=ANOTHER-RANDOM-SECRET
 ```
 
 For Scaleway Object Storage, install the `s3` extra and configure the S3 bucket/endpoint variables documented in [the deployment guide](docs/deploy-scaleway.md).
+
+The reference Scaleway deployment is codified in [`infra/scaleway`](infra/scaleway/README.md). It provisions a private image registry, a scale-to-zero Serverless Container, health probes, HTTPS-only ingress, and an optional TTL-bound result bucket with a dedicated runtime identity.
 
 ## Security and privacy defaults
 
