@@ -4,7 +4,12 @@ from uuid import uuid4
 
 import httpx
 
-from open_transcribe.domain.audio import ResolvedAudioSource, TimestampMode, TranscribeAudioRequest
+from open_transcribe.domain.audio import (
+    ResolvedAudioSource,
+    SourceDelivery,
+    TimestampMode,
+    TranscribeAudioRequest,
+)
 from open_transcribe.domain.capabilities import ModelDescriptor, ModelLifecycle, PricingDescriptor
 from open_transcribe.domain.transcript import (
     CanonicalTranscript,
@@ -52,7 +57,7 @@ class GroqProvider(HttpProvider):
             display_name=f"Groq {model}",
             lifecycle=ModelLifecycle.GA,
             languages="dynamic",
-            supports_url_input=False,
+            supports_url_input=True,
             supports_diarization=False,
             timestamp_modes={TimestampMode.NONE, TimestampMode.SEGMENT, TimestampMode.WORD},
             transcript_styles={"verbatim"},
@@ -71,8 +76,10 @@ class GroqProvider(HttpProvider):
         source: ResolvedAudioSource,
         model: ModelDescriptor,
     ) -> CanonicalTranscript:
-        if self.settings.api_key is None or source.local_path is None:
-            raise RuntimeError("Groq provider is not configured or has no proxied source")
+        if self.settings.api_key is None:
+            raise RuntimeError("Groq provider is not configured")
+        if source.local_path is None and source.delivery != SourceDelivery.PASSTHROUGH:
+            raise RuntimeError("Groq provider has no usable audio source")
         api_key = self.settings.api_key.get_secret_value()
         local_path = source.local_path
         url = f"{str(self.settings.base_url).rstrip('/')}/audio/transcriptions"
@@ -81,27 +88,44 @@ class GroqProvider(HttpProvider):
             data["language"] = request.language
         if request.phrase_hints:
             data["prompt"] = ", ".join(request.phrase_hints)
-        if request.timestamps != TimestampMode.NONE:
-            data["timestamp_granularities[]"] = request.timestamps.value
+        if request.timestamps == TimestampMode.WORD:
+            data["timestamp_granularities[]"] = ["word", "segment"]
+        elif request.timestamps == TimestampMode.SEGMENT:
+            data["timestamp_granularities[]"] = "segment"
+        if source.delivery == SourceDelivery.PASSTHROUGH:
+            data["url"] = source.original_url
 
         async def send() -> httpx.Response:
-            with Path(local_path).open("rb") as handle:  # noqa: ASYNC230
-                files: dict[str, Any] = {
-                    "file": (
-                        safe_filename(source.media_type),
-                        handle,
-                        source.media_type or "application/octet-stream",
+            handle = (
+                Path(local_path).open("rb") if local_path else None  # noqa: ASYNC230, SIM115
+            )
+            try:
+                files: list[tuple[str, Any]] = []
+                for name, value in data.items():
+                    values = value if isinstance(value, list) else [value]
+                    files.extend((name, (None, str(item))) for item in values)
+                if handle:
+                    files.append(
+                        (
+                            "file",
+                            (
+                                safe_filename(source.media_type),
+                                handle,
+                                source.media_type or "application/octet-stream",
+                            ),
+                        )
                     )
-                }
                 async with httpx.AsyncClient(
                     timeout=self.timeout_seconds, trust_env=False
                 ) as client:
                     return await client.post(
                         url,
                         headers={"Authorization": f"Bearer {api_key}"},
-                        data=data,
                         files=files,
                     )
+            finally:
+                if handle:
+                    handle.close()
 
         response, latency_ms = await self._request_with_retry(
             send, provider=self.provider_id, model=model.model

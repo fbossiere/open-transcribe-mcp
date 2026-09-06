@@ -131,10 +131,12 @@ The reference Scaleway deployment is codified in [`infra/scaleway`](infra/scalew
 - source HTTPS is required;
 - private, loopback, link-local, multicast, reserved, and metadata destinations are rejected;
 - every redirect target is resolved and validated;
+- proxy downloads connect to the validated public IP while preserving HTTPS SNI and the original Host header;
 - source downloads are streamed to an ephemeral file with byte limits, then deleted;
 - signed URL queries, audio, transcript text, authorization headers, and phrase hints are not logged;
 - no project telemetry is emitted;
 - transcripts are not retained unless a result store is explicitly enabled and used.
+- ElevenLabs zero-retention requests are enabled by default; disabling them is an explicit operator choice.
 
 Read [SECURITY.md](SECURITY.md), [the threat model](docs/security.md), and [the retention policy](docs/privacy.md) before exposing the service publicly.
 
@@ -142,7 +144,7 @@ Read [SECURITY.md](SECURITY.md), [the threat model](docs/security.md), and [the 
 
 OpenTranscribe v0.1 targets self-hosted, single-tenant installations. Provider feature parity is deliberately not guaranteed; capability negotiation exposes differences instead of hiding them. URL ingestion is the only remote input type. Synchronous provider limits still apply. OIDC and asynchronous jobs are planned for later releases. The memory store is neither durable nor horizontally scalable. S3 lookups prioritize a simple deployment contract over very-large-bucket indexing; dedicate the result prefix and enforce lifecycle deletion.
 
-DNS is validated immediately before source requests and on every redirect. The stock HTTP transport still performs its own connection-time resolution, so operators with a high-assurance threat model should combine host allow-listing with egress firewall rules.
+Application controls do not replace network policy. Internet-facing operators should still combine exact source-host allow-listing with egress firewall rules.
 
 Provider prices, APIs, and capabilities change. The checked-in metadata is informational, not a contractual quote.
 

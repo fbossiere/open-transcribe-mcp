@@ -1,10 +1,12 @@
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
 from fastmcp import Client
 from starlette.testclient import TestClient
 
 from open_transcribe.server import create_app, create_server
+from open_transcribe.service import TranscriptionService
 from open_transcribe.settings import Settings
 
 
@@ -54,6 +56,10 @@ async def test_exact_mcp_tool_surface_and_structured_errors(config_dir: Path) ->
             "list_transcription_models",
             "estimate_transcription_cost",
         }
+        schemas = " ".join(tool.model_dump_json() for tool in tools)
+        assert "api_key" not in schemas
+        assert "local_path" not in schemas
+        assert "provider-native" not in schemas
         models = await client.call_tool("list_transcription_models", {})
         assert len(models.data) == 4
         estimate = await client.call_tool(
@@ -71,3 +77,25 @@ async def test_exact_mcp_tool_surface_and_structured_errors(config_dir: Path) ->
             {"request": {"source": {"url": "https://example.com/audio.mp3"}}},
         )
         assert transcription.data["error"]["code"] == "PROVIDER_UNAVAILABLE"
+
+
+@pytest.mark.asyncio
+async def test_unexpected_store_error_is_normalized_without_leaking_details(
+    config_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    settings = Settings(
+        _env_file=None,
+        environment="test",
+        config_dir=config_dir,
+        security={"auth_mode": "none"},
+    )
+    failure = "https://media.example/audio.mp3?signature=must-not-leak"
+    monkeypatch.setattr(
+        TranscriptionService,
+        "get_chunk",
+        AsyncMock(side_effect=RuntimeError(failure)),
+    )
+    async with Client(create_server(settings)) as client:
+        result = await client.call_tool("get_transcript_chunk", {"transcript_id": "tr_missing"})
+    assert result.data["error"]["code"] == "INTERNAL_ERROR"
+    assert failure not in str(result.data)

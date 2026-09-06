@@ -6,4 +6,4 @@ Temporary transcript storage is disabled by default. When explicitly enabled, `r
 
 Providers receive either the original signed URL or proxied audio according to `source_delivery`. Passthrough minimizes OpenTranscribe retention and bandwidth but discloses the URL to the chosen provider. Proxy hides the URL but causes OpenTranscribe to process temporary audio bytes. Operators must choose based on their data-processing agreements and threat model.
 
-Provider-side retention is governed by the operator's provider account and contract. Enabling OpenTranscribe zero-retention behavior cannot create a provider entitlement that the account does not have.
+Provider-side retention is governed by the operator's provider account and contract. OpenTranscribe requests ElevenLabs zero-retention mode by default, which requires an eligible provider account. Setting `OT_ELEVENLABS__ZERO_RETENTION=false` is an explicit opt-out that permits provider logging; OpenTranscribe cannot create a provider entitlement that the account does not have.

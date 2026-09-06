@@ -47,6 +47,13 @@ def create_server(config: Settings) -> FastMCP:
         )
         return ToolErrorResult(error=exc.response)
 
+    def internal_failure(tool: str) -> ToolErrorResult:
+        # Exception strings and tracebacks may contain signed URLs or provider data.
+        logger.error("unexpected_tool_failure", tool=tool)
+        return failure(
+            OpenTranscribeError(ErrorCode.INTERNAL_ERROR, "An unexpected internal error occurred.")
+        )
+
     @mcp.tool
     async def transcribe_audio(
         request: TranscribeAudioRequest,
@@ -57,11 +64,7 @@ def create_server(config: Settings) -> FastMCP:
         except OpenTranscribeError as exc:
             return failure(exc).model_dump(mode="json")
         except Exception:
-            logger.exception("unexpected_tool_failure", tool="transcribe_audio")
-            error = OpenTranscribeError(
-                ErrorCode.INTERNAL_ERROR, "An unexpected internal error occurred."
-            )
-            return failure(error).model_dump(mode="json")
+            return internal_failure("transcribe_audio").model_dump(mode="json")
 
     @mcp.tool
     async def get_transcript_chunk(
@@ -76,6 +79,8 @@ def create_server(config: Settings) -> FastMCP:
             return result.model_dump(mode="json")
         except OpenTranscribeError as exc:
             return failure(exc).model_dump(mode="json")
+        except Exception:
+            return internal_failure("get_transcript_chunk").model_dump(mode="json")
 
     @mcp.tool
     async def delete_transcript(transcript_id: str) -> dict[str, Any]:
@@ -84,6 +89,8 @@ def create_server(config: Settings) -> FastMCP:
             return (await service.delete(transcript_id)).model_dump(mode="json")
         except OpenTranscribeError as exc:
             return failure(exc).model_dump(mode="json")
+        except Exception:
+            return internal_failure("delete_transcript").model_dump(mode="json")
 
     @mcp.tool
     def list_transcription_models(configured_only: bool = False) -> list[dict[str, Any]]:
@@ -102,6 +109,8 @@ def create_server(config: Settings) -> FastMCP:
             return service.estimate_cost(duration_seconds, provider, model).model_dump(mode="json")
         except OpenTranscribeError as exc:
             return failure(exc).model_dump(mode="json")
+        except Exception:
+            return internal_failure("estimate_transcription_cost").model_dump(mode="json")
 
     @mcp.custom_route("/healthz", methods=["GET"])
     async def healthz(_: Request) -> JSONResponse:

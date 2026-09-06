@@ -61,6 +61,42 @@ async def test_microsoft_url_passthrough(settings: Settings) -> None:
 
 @pytest.mark.asyncio
 @respx.mock
+async def test_groq_url_passthrough_requests_word_and_segment_timestamps(
+    settings: Settings,
+) -> None:
+    _, _, groq = adapters(settings)
+    route = respx.post("https://api.groq.com/openai/v1/audio/transcriptions").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "language": "en",
+                "duration": 1,
+                "text": "Hello",
+                "segments": [{"start": 0, "end": 1, "text": "Hello"}],
+                "words": [{"start": 0, "end": 1, "word": "Hello"}],
+            },
+        )
+    )
+    result = await groq.transcribe(
+        request(diarization=False),
+        ResolvedAudioSource(
+            original_url="https://media.example/audio.mp3?signature=secret",
+            delivery=SourceDelivery.PASSTHROUGH,
+        ),
+        groq.list_models()[0],
+    )
+    assert result.segments
+    assert result.segments[0].words
+    body = route.calls[0].request.content.decode()
+    assert 'name="url"' in body
+    assert "https://media.example/audio.mp3?signature=secret" in body
+    assert body.count('name="timestamp_granularities[]"') == 2
+    assert "word" in body
+    assert "segment" in body
+
+
+@pytest.mark.asyncio
+@respx.mock
 async def test_elevenlabs_url_passthrough(settings: Settings) -> None:
     _, eleven, _ = adapters(settings)
     route = respx.post("https://api.elevenlabs.io/v1/speech-to-text").mock(
@@ -79,6 +115,7 @@ async def test_elevenlabs_url_passthrough(settings: Settings) -> None:
     )
     assert route.called
     assert result.text == "Hello"
+    assert route.calls[0].request.url.params["enable_logging"] == "false"
 
 
 @pytest.mark.asyncio

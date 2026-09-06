@@ -11,7 +11,7 @@ from open_transcribe.domain.audio import ResolvedAudioSource, SourceDelivery
 from open_transcribe.domain.capabilities import ModelDescriptor
 from open_transcribe.domain.errors import ErrorCode, OpenTranscribeError
 from open_transcribe.security.redaction import redact_url
-from open_transcribe.security.ssrf import validate_source_url
+from open_transcribe.security.ssrf import ValidatedUrl, validate_source_url
 from open_transcribe.settings import Settings
 
 
@@ -36,7 +36,7 @@ class SourceBroker:
         self, source_url: str, requested: SourceDelivery, model: ModelDescriptor
     ) -> AsyncIterator[ResolvedAudioSource]:
         security = self.settings.security
-        await validate_source_url(
+        validated = await validate_source_url(
             source_url,
             require_https=security.require_https_sources,
             allow_private_urls=security.allow_private_urls,
@@ -48,7 +48,7 @@ class SourceBroker:
             return
         path: str | None = None
         try:
-            path, media_type, size = await self._download(source_url)
+            path, media_type, size = await self._download(source_url, validated)
             yield ResolvedAudioSource(
                 original_url=source_url,
                 delivery=delivery,
@@ -60,25 +60,28 @@ class SourceBroker:
             if path:
                 await asyncio.to_thread(Path(path).unlink, missing_ok=True)
 
-    async def _download(self, source_url: str) -> tuple[str, str | None, int]:
+    async def _download(
+        self, source_url: str, validated: ValidatedUrl
+    ) -> tuple[str, str | None, int]:
         current = source_url
         with tempfile.NamedTemporaryFile(prefix="open-transcribe-", delete=False) as temp:
             path = temp.name
         try:
             async with httpx.AsyncClient(
                 follow_redirects=False,
+                limits=httpx.Limits(max_keepalive_connections=0),
                 timeout=self.settings.source_download_timeout_seconds,
                 trust_env=False,
             ) as client:
                 for redirect_count in range(self.settings.security.max_redirects + 1):
-                    await validate_source_url(
-                        current,
-                        require_https=self.settings.security.require_https_sources,
-                        allow_private_urls=self.settings.security.allow_private_urls,
-                        allowed_hosts=self.settings.security.allowed_source_hosts,
-                    )
+                    target_url, host_header = validated.connection_target(validated.resolved_ips[0])
                     try:
-                        async with client.stream("GET", current) as response:
+                        async with client.stream(
+                            "GET",
+                            target_url,
+                            headers={"Host": host_header},
+                            extensions={"sni_hostname": validated.host},
+                        ) as response:
                             if response.is_redirect:
                                 location = response.headers.get("location")
                                 if (
@@ -90,6 +93,12 @@ class SourceBroker:
                                         "The source redirect chain is invalid or too long.",
                                     )
                                 current = urljoin(current, location)
+                                validated = await validate_source_url(
+                                    current,
+                                    require_https=self.settings.security.require_https_sources,
+                                    allow_private_urls=self.settings.security.allow_private_urls,
+                                    allowed_hosts=self.settings.security.allowed_source_hosts,
+                                )
                                 continue
                             if response.status_code >= 400:
                                 raise OpenTranscribeError(
@@ -98,11 +107,24 @@ class SourceBroker:
                                     details={"status_code": response.status_code},
                                 )
                             length = response.headers.get("content-length")
-                            if length and int(length) > self.settings.max_audio_bytes:
-                                raise OpenTranscribeError(
-                                    ErrorCode.SOURCE_TOO_LARGE,
-                                    "The audio source exceeds the configured size limit.",
-                                )
+                            if length:
+                                try:
+                                    declared_size = int(length)
+                                except ValueError as exc:
+                                    raise OpenTranscribeError(
+                                        ErrorCode.SOURCE_UNAVAILABLE,
+                                        "The audio source returned an invalid content length.",
+                                    ) from exc
+                                if declared_size < 0:
+                                    raise OpenTranscribeError(
+                                        ErrorCode.SOURCE_UNAVAILABLE,
+                                        "The audio source returned an invalid content length.",
+                                    )
+                                if declared_size > self.settings.max_audio_bytes:
+                                    raise OpenTranscribeError(
+                                        ErrorCode.SOURCE_TOO_LARGE,
+                                        "The audio source exceeds the configured size limit.",
+                                    )
                             media_type = response.headers.get("content-type")
                             size = 0
                             prefix = b""

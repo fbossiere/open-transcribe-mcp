@@ -4,6 +4,23 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Added
+
+- DNS-rebinding-resistant proxy downloads that connect only to the validated public address while preserving HTTPS SNI and Host routing.
+- Groq URL passthrough and complete word-plus-segment timestamp requests.
+
+### Changed
+
+- ElevenLabs requests now default to the provider's zero-retention mode.
+- Unexpected result-store and provider failures are returned as content-free project errors without logging exception payloads.
+- Production-oriented Terraform for Scaleway Serverless Containers, including a private registry, scale-to-zero defaults, probes, secret validation, and optional least-privilege temporary Object Storage.
+- Terraform formatting and validation in CI.
+- The production Docker image now includes the optional S3 result-store dependency.
+
+### Security
+
+- Proxy connections are pinned to the DNS addresses that passed SSRF validation, including after redirects.
+
 ## [0.1.1] - 2026-09-06
 
 ### Fixed
@@ -12,17 +29,11 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
-- Production-oriented Terraform for Scaleway Serverless Containers, including a private registry, scale-to-zero defaults, probes, secret validation, and optional least-privilege temporary Object Storage.
-- Terraform formatting and validation workflow.
 - structured issue forms, pull-request template, code ownership, governance, and support policy;
 - pinned GitHub Actions workflows for quality checks, builds, CodeQL, and dependency review;
 - weekly Dependabot updates for Python and GitHub Actions dependencies.
 - automated, OIDC-based publishing to PyPI and the official MCP Registry for GitHub releases;
 - installable MCP Registry metadata and release-version validation.
-
-### Changed
-
-- The production Docker image now includes the optional S3 result-store dependency.
 
 ## [0.1.0] - 2026-09-06
 

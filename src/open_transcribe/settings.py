@@ -23,7 +23,7 @@ class MicrosoftSettings(BaseModel):
 class ElevenLabsSettings(BaseModel):
     api_key: SecretStr | None = None
     base_url: HttpUrl = HttpUrl("https://api.elevenlabs.io")
-    zero_retention: bool = False
+    zero_retention: bool = True
 
 
 class GroqSettings(BaseModel):
