@@ -4,8 +4,8 @@ locals {
     "managed-by=terraform",
   ], var.tags))
 
-  image_reference    = "${scaleway_registry_namespace.this.endpoint}/${var.image_name}:${var.image_tag}"
-  result_prefix      = trim(var.result_prefix, "/")
+  image_reference = "${scaleway_registry_namespace.this.endpoint}/${var.image_name}:${var.image_tag}"
+  result_prefix   = trim(var.result_prefix, "/")
   result_bucket_name = coalesce(
     var.result_bucket_name,
     "${var.name_prefix}-results-${substr(replace(var.project_id, "-", ""), 0, 12)}",
@@ -29,7 +29,7 @@ locals {
       OT_RESULT_STORE__S3_ENDPOINT_URL = "https://s3.${var.region}.scw.cloud"
       OT_RESULT_STORE__S3_REGION       = var.region
       OT_RESULT_STORE__S3_PREFIX       = local.result_prefix
-    } : {
+      } : {
       OT_RESULT_STORE__BACKEND = "disabled"
     },
   )
