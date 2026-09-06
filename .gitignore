@@ -10,6 +10,7 @@ htmlcov/
 .ruff_cache/
 dist/
 build/
+site/
 *.egg-info/
 .DS_Store
 .terraform/

@@ -32,6 +32,7 @@ def validate(tag: str) -> None:
     package_versions = [str(package.get("version")) for package in server.get("packages", [])]
     expected_marker = f"<!-- mcp-name: {SERVER_NAME} -->"
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
     errors: list[str] = []
     if project_version != version:
@@ -48,6 +49,10 @@ def validate(tag: str) -> None:
         )
     if expected_marker not in readme:
         errors.append(f"README.md is missing MCP Registry ownership marker {expected_marker!r}")
+    if f"## [{version}]" not in changelog:
+        errors.append(f"CHANGELOG.md is missing a {version} release heading")
+    if f"open-transcribe-mcp:{version}" not in readme:
+        errors.append(f"README.md has no Docker example for version {version}")
 
     if errors:
         raise ValueError("release metadata validation failed:\n- " + "\n- ".join(errors))

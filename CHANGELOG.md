@@ -8,6 +8,7 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 - DNS-rebinding-resistant proxy downloads that connect only to the validated public address while preserving HTTPS SNI and Host routing.
 - Groq URL passthrough and complete word-plus-segment timestamp requests.
+- Strict MkDocs documentation builds, dependency auditing, filesystem/container scanning, and release artifact inspection.
 
 ### Changed
 
@@ -16,6 +17,7 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Production-oriented Terraform for Scaleway Serverless Containers, including a private registry, scale-to-zero defaults, probes, secret validation, and optional least-privilege temporary Object Storage.
 - Terraform formatting and validation in CI.
 - The production Docker image now includes the optional S3 result-store dependency.
+- The development lock now requires a non-vulnerable pytest release.
 
 ### Security
 

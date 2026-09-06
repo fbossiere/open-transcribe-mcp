@@ -1,9 +1,8 @@
 # Release process
 
-Publishing is automated when a stable version tag is pushed. The release workflow validates and
-tests the tagged source, builds the wheel and source distribution once, publishes them to PyPI
-with Trusted Publishing, and then publishes `server.json` to the official MCP Registry. Create the
-immutable GitHub release only after that workflow succeeds.
+Publishing is automated when a stable version tag from `main` is pushed. The release workflow
+validates and tests the tagged source, builds and inspects the Python distributions, publishes them
+to PyPI with Trusted Publishing, then publishes `server.json` to the official MCP Registry.
 
 No long-lived publication token is stored in GitHub. Both registries use GitHub OIDC.
 
@@ -40,15 +39,19 @@ matching `mcp-name` marker in `README.md`.
    uv run ruff format --check .
    uv run mypy
    uv run pytest --cov
+   uv run mkdocs build --strict
+   uv run pip-audit
+   uv build
+   uv run python scripts/check_distribution.py
    uv run python scripts/check_release_metadata.py --tag v0.1.1
    ```
 
 4. Merge the release preparation pull request.
 5. Create and push the matching tag from the merged `main` commit.
-6. Wait for the release workflow to publish and verify both registries.
-7. Create the immutable GitHub release from the existing tag.
+6. Wait for the release workflow to publish and verify PyPI and MCP Registry.
 
-The workflow rejects malformed tags and any mismatch among the tag, Python package version, MCP
-server version, and MCP package version. PyPI must succeed before MCP Registry publication begins.
-Rerunning a partially successful workflow is safe only for the failed job: registry versions are
-immutable and PyPI does not allow uploading an existing filename again.
+The workflow rejects malformed tags, tags not reachable from `main`, and mismatches among the tag,
+changelog, README example, Python package version, MCP server version, and MCP package version.
+PyPI must succeed before MCP Registry publication begins. Rerunning a partially successful workflow
+is safe only for a failed job: registry versions are immutable and PyPI does not allow uploading an
+existing filename again.

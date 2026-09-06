@@ -22,7 +22,15 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.ref_name }}
+          fetch-depth: 0
           persist-credentials: false
+
+      - name: Verify tag belongs to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "${GITHUB_SHA}" origin/main
 
       - name: Install uv and Python
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
@@ -51,8 +59,14 @@ jobs:
       - name: Test with coverage
         run: uv run pytest --cov=open_transcribe --cov-report=term-missing --cov-report=xml
 
+      - name: Build documentation strictly
+        run: uv run mkdocs build --strict
+
       - name: Build source and wheel distributions
         run: uv build
+
+      - name: Inspect distribution contents
+        run: uv run python scripts/check_distribution.py
 
       - name: Smoke-test the installed wheel
         shell: bash
