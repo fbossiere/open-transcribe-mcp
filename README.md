@@ -66,6 +66,16 @@ uv run open-transcribe-mcp
 
 The MCP endpoint is `http://localhost:8000/mcp`; probes are available at `/healthz` and `/readyz`.
 
+Run the included bilingual, two-voice synthetic recording through the connected provider:
+
+```bash
+uv run python examples/transcribe.py --token YOUR-RANDOM-TOKEN
+```
+
+The [fixture and reference transcript](tests/fixtures/README.md) are non-sensitive and
+redistributable. Pass another authorized public HTTPS audio URL as the first argument to use your
+own source.
+
 Connect a FastMCP client:
 
 ```python

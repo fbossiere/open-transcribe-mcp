@@ -6,6 +6,11 @@ import json
 
 from fastmcp import Client
 
+DEFAULT_AUDIO_URL = (
+    "https://raw.githubusercontent.com/fbossiere/open-transcribe-mcp/"
+    "main/tests/fixtures/open-transcribe-bilingual.wav"
+)
+
 
 async def run(server_url: str, bearer_token: str, audio_url: str) -> None:
     async with Client(server_url, auth=bearer_token) as client:
@@ -27,7 +32,7 @@ async def run(server_url: str, bearer_token: str, audio_url: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("audio_url")
+    parser.add_argument("audio_url", nargs="?", default=DEFAULT_AUDIO_URL)
     parser.add_argument("--server", default="http://localhost:8000/mcp")
     parser.add_argument("--token", required=True)
     args = parser.parse_args()
