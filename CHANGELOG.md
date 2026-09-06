@@ -4,6 +4,12 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-06
+
+### Fixed
+
+- Trigger registry publishing from the version tag before creating an immutable GitHub release.
+
 ### Added
 
 - structured issue forms, pull-request template, code ownership, governance, and support policy;
@@ -26,5 +32,6 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Docker, Scaleway, provider, privacy, security, Plaud, and ChatGPT/Drive documentation;
 - unit, provider contract, security, and MCP transport tests plus release CI.
 
-[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v0.1.0
+[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v0.1.1
+[0.1.0]: https://github.com/fbossiere/open-transcribe-mcp/tree/v0.1.0

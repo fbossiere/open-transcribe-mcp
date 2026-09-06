@@ -1,8 +1,9 @@
 # Release process
 
-Publishing is automated when a GitHub release is published. The release workflow validates and
+Publishing is automated when a stable version tag is pushed. The release workflow validates and
 tests the tagged source, builds the wheel and source distribution once, publishes them to PyPI
-with Trusted Publishing, and then publishes `server.json` to the official MCP Registry.
+with Trusted Publishing, and then publishes `server.json` to the official MCP Registry. Create the
+immutable GitHub release only after that workflow succeeds.
 
 No long-lived publication token is stored in GitHub. Both registries use GitHub OIDC.
 
@@ -39,11 +40,13 @@ matching `mcp-name` marker in `README.md`.
    uv run ruff format --check .
    uv run mypy
    uv run pytest --cov
-   uv run python scripts/check_release_metadata.py --tag v0.1.0
+   uv run python scripts/check_release_metadata.py --tag v0.1.1
    ```
 
 4. Merge the release preparation pull request.
-5. Create and publish the matching GitHub release from the tagged `main` commit.
+5. Create and push the matching tag from the merged `main` commit.
+6. Wait for the release workflow to publish and verify both registries.
+7. Create the immutable GitHub release from the existing tag.
 
 The workflow rejects malformed tags and any mismatch among the tag, Python package version, MCP
 server version, and MCP package version. PyPI must succeed before MCP Registry publication begins.
