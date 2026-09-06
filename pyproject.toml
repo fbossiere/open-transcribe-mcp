@@ -53,6 +53,9 @@ Issues = "https://github.com/fbossiere/open-transcribe-mcp/issues"
 [tool.hatch.build.targets.wheel]
 packages = ["src/open_transcribe"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"config" = "open_transcribe/config"
+
 [tool.pytest.ini_options]
 addopts = "--strict-markers --strict-config -ra"
 asyncio_mode = "auto"

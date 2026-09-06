@@ -6,6 +6,14 @@ from pydantic import BaseModel, Field, HttpUrl, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def _default_config_dir() -> Path:
+    """Resolve bundled configuration in wheels and repository configuration in checkouts."""
+    package_config = Path(__file__).resolve().parent / "config"
+    if package_config.is_dir():
+        return package_config
+    return Path(__file__).resolve().parents[2] / "config"
+
+
 class MicrosoftSettings(BaseModel):
     endpoint: HttpUrl | None = None
     api_key: SecretStr | None = None
@@ -65,7 +73,7 @@ class Settings(BaseSettings):
     max_inline_text_chars: int = Field(default=100000, ge=1)
     max_inline_segments: int = Field(default=1000, ge=1)
     max_inline_response_bytes: int = Field(default=400000, ge=1000)
-    config_dir: Path = Path("config")
+    config_dir: Path = Field(default_factory=_default_config_dir)
     microsoft: MicrosoftSettings = MicrosoftSettings()
     elevenlabs: ElevenLabsSettings = ElevenLabsSettings()
     groq: GroqSettings = GroqSettings()

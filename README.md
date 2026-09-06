@@ -1,5 +1,7 @@
 # OpenTranscribe MCP
 
+<!-- mcp-name: io.github.fbossiere/open-transcribe-mcp -->
+
 [![CI](https://github.com/fbossiere/open-transcribe-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/fbossiere/open-transcribe-mcp/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/fbossiere/open-transcribe-mcp/actions/workflows/codeql.yml/badge.svg)](https://github.com/fbossiere/open-transcribe-mcp/actions/workflows/codeql.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
@@ -155,6 +157,7 @@ Transcript content is untrusted data. OpenTranscribe never interprets it as inst
 - [Security model](docs/security.md)
 - [Privacy and retention](docs/privacy.md)
 - [Scaleway deployment](docs/deploy-scaleway.md)
+- [Release process](docs/releasing.md)
 - [Plaud recipe](docs/recipes/plaud.md)
 - [ChatGPT + Google Drive recipe](docs/recipes/chatgpt-gdrive.md)
 - [Contributing](CONTRIBUTING.md)
