@@ -1,0 +1,1 @@
+"""Microsoft MAI transcription adapter."""

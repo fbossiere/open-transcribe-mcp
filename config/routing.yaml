@@ -1,0 +1,20 @@
+defaults:
+  provider: microsoft
+  model: MAI-Transcribe-2
+
+policies:
+  quality:
+    - microsoft/MAI-Transcribe-2
+    - elevenlabs/scribe-v2
+    - groq/whisper-large-v3
+    - groq/whisper-large-v3-turbo
+  latency:
+    - groq/whisper-large-v3-turbo
+    - microsoft/MAI-Transcribe-2
+    - elevenlabs/scribe-v2
+    - groq/whisper-large-v3
+
+fallback:
+  enabled: true
+  retryable_statuses: [429, 500, 502, 503, 504]
+

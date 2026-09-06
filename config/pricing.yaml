@@ -1,0 +1,27 @@
+# Informational metadata only. Verify current provider pricing before production use.
+providers:
+  microsoft:
+    MAI-Transcribe-2:
+      billing_unit: audio_hour
+      price_usd: 0.10
+      valid_from: 2026-09-03
+      valid_until: 2026-12-31
+      source: https://azure.microsoft.com/pricing/details/cognitive-services/speech-services/
+  elevenlabs:
+    scribe-v2:
+      billing_unit: audio_hour
+      price_usd: 0.22
+      valid_from: 2026-09-01
+      source: https://elevenlabs.io/pricing/api
+  groq:
+    whisper-large-v3:
+      billing_unit: audio_hour
+      price_usd: 0.111
+      valid_from: 2026-09-01
+      source: https://groq.com/pricing
+    whisper-large-v3-turbo:
+      billing_unit: audio_hour
+      price_usd: 0.04
+      valid_from: 2026-09-01
+      source: https://groq.com/pricing
+

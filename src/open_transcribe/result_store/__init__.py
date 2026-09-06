@@ -1,0 +1,1 @@
+"""Temporary result stores."""

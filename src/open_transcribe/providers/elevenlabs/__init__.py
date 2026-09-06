@@ -1,0 +1,1 @@
+"""ElevenLabs Scribe adapter."""
