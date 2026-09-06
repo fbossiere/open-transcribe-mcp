@@ -9,3 +9,4 @@ def test_default_configuration_is_available_from_source_checkout() -> None:
 
     assert (settings.config_dir / "pricing.yaml").is_file()
     assert (settings.config_dir / "routing.yaml").is_file()
+    assert settings.elevenlabs.zero_retention is True

@@ -12,7 +12,7 @@
 
 ## Controls
 
-Source URLs accept only HTTP(S), require HTTPS by default, forbid user-info credentials, resolve DNS, and reject every non-global address. Validation repeats for every redirect. Redirect count, download timeout, declared length, streamed bytes, MIME type, and recognizable file signatures are bounded. `trust_env=False` prevents ambient proxy settings from silently changing the request path. Proxy files use random names and are removed in `finally` paths.
+Source URLs accept only HTTP(S), require HTTPS by default, forbid user-info credentials, resolve DNS, and reject every non-global address. Proxy downloads connect to a validated address directly while preserving the original HTTPS SNI and Host authority, closing the validation-to-connection DNS-rebinding window. Validation and address pinning repeat for every redirect. Redirect count, download timeout, declared length, streamed bytes, MIME type, and recognizable file signatures are bounded. `trust_env=False` prevents ambient proxy settings from silently changing the request path. Proxy files use random names and are removed in `finally` paths.
 
 Bearer tokens use constant-time comparison. Production rejects `auth_mode=none`; OIDC is intentionally deferred until its discovery and key-management contract can be implemented completely. Result cursors are opaque HMAC-authenticated payloads bound to transcript ID and output format. S3 objects contain only gzip canonical JSON and request server-side encryption.
 
@@ -22,7 +22,7 @@ Provider errors are reduced to stable project codes and status metadata. Raw bod
 
 For internet-facing deployments, use an exact source-host allowlist when practical, egress firewall rules that deny private/link-local/metadata networks, HTTPS termination, secret-manager injection, a dedicated S3 prefix/bucket with one-day lifecycle deletion, and least-privilege credentials.
 
-DNS validation immediately precedes each request, but the default HTTP transport resolves again at connection time. Egress policy is the definitive control against DNS rebinding in high-assurance environments.
+URL passthrough delegates the actual fetch to the selected transcription provider, so local connection pinning applies only to proxy delivery. Egress policy remains an important independent control for high-assurance environments.
 
 ## Transcript boundary
 

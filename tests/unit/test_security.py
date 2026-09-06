@@ -60,7 +60,28 @@ async def test_public_resolution_is_returned(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(ssrf, "_resolve", public)
     result = await validate_source_url("https://example.com/audio.mp3")
     assert result.host == "example.com"
+    assert result.port == 443
     assert result.resolved_ips == ("1.1.1.1",)
+
+
+def test_validated_url_pins_connection_and_preserves_original_authority() -> None:
+    validated = ssrf.ValidatedUrl(
+        url="https://media.example:8443/audio.mp3?signature=secret#ignored",
+        scheme="https",
+        host="media.example",
+        port=8443,
+        resolved_ips=("2001:4860:4860::8888",),
+    )
+    target, authority = validated.connection_target("2001:4860:4860::8888")
+    assert target == "https://[2001:4860:4860::8888]:8443/audio.mp3?signature=secret"
+    assert authority == "media.example:8443"
+
+
+@pytest.mark.asyncio
+async def test_invalid_port_is_a_security_rejection() -> None:
+    with pytest.raises(OpenTranscribeError) as caught:
+        await validate_source_url("https://example.com:99999/audio.mp3")
+    assert caught.value.response.code == ErrorCode.SOURCE_URL_REJECTED
 
 
 @pytest.mark.asyncio
