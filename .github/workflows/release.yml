@@ -1,15 +1,15 @@
 name: Release
 
 on:
-  release:
-    types:
-      - published
+  push:
+    tags:
+      - "v*"
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.event.release.tag_name }}
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
       - name: Check out released tag
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.ref_name }}
           persist-credentials: false
 
       - name: Install uv and Python
@@ -37,7 +37,7 @@ jobs:
       - name: Validate release metadata
         run: >-
           uv run python scripts/check_release_metadata.py
-          --tag "${{ github.event.release.tag_name }}"
+          --tag "${{ github.ref_name }}"
 
       - name: Check formatting
         run: uv run ruff format --check .
@@ -127,14 +127,14 @@ jobs:
       - name: Check out released tag
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.ref_name }}
           persist-credentials: false
 
       - name: Wait for the PyPI release
         shell: bash
         run: |
           set -euo pipefail
-          version="${{ github.event.release.tag_name }}"
+          version="${{ github.ref_name }}"
           version="${version#v}"
           for attempt in {1..30}; do
             if curl --fail --silent --show-error \
@@ -168,7 +168,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version="${{ github.event.release.tag_name }}"
+          version="${{ github.ref_name }}"
           version="${version#v}"
           endpoint="https://registry.modelcontextprotocol.io/v0.1/servers/io.github.fbossiere%2Fopen-transcribe-mcp/versions/${version}"
           for attempt in {1..12}; do
