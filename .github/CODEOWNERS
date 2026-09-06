@@ -1,0 +1,9 @@
+# Default ownership keeps review routing explicit while the maintainer team is small.
+* @fbossiere
+
+# Security-sensitive surfaces are called out so future ownership can be split safely.
+/src/open_transcribe/security/ @fbossiere
+/src/open_transcribe/providers/ @fbossiere
+/.github/workflows/ @fbossiere
+/SECURITY.md @fbossiere
+

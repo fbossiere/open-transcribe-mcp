@@ -8,6 +8,9 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 - Production-oriented Terraform for Scaleway Serverless Containers, including a private registry, scale-to-zero defaults, probes, secret validation, and optional least-privilege temporary Object Storage.
 - Terraform formatting and validation workflow.
+- structured issue forms, pull-request template, code ownership, governance, and support policy;
+- pinned GitHub Actions workflows for quality checks, builds, CodeQL, and dependency review;
+- weekly Dependabot updates for Python and GitHub Actions dependencies.
 
 ### Changed
 

@@ -1,0 +1,86 @@
+name: Bug report
+description: Report a reproducible defect in OpenTranscribe MCP.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve OpenTranscribe. Do not include credentials, signed URLs, private audio, transcript content, or undisclosed vulnerability details.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: This is not a security vulnerability. I will use the private reporting channel for security issues.
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and its impact.
+      placeholder: A clear and concise description of the defect.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide the smallest safe example that reproduces the problem.
+      placeholder: |
+        1. Configure ...
+        2. Call ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider
+      options:
+        - Not provider-specific
+        - Microsoft MAI
+        - ElevenLabs Scribe
+        - Groq Whisper
+        - Other or new provider
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: OpenTranscribe version or commit
+      placeholder: 0.1.0 or commit SHA
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Runtime environment
+      description: Include Python version, operating system, and deployment type.
+      placeholder: Python 3.12, Ubuntu 24.04, Docker
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs or additional context
+      description: Remove tokens, URLs with query strings, audio, transcripts, and personal data.
+      render: shell
+
