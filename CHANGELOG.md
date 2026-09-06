@@ -9,6 +9,7 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - DNS-rebinding-resistant proxy downloads that connect only to the validated public address while preserving HTTPS SNI and Host routing.
 - Groq URL passthrough and complete word-plus-segment timestamp requests.
 - Strict MkDocs documentation builds, dependency auditing, filesystem/container scanning, and release artifact inspection.
+- A redistributable two-voice English/French synthetic audio fixture, reference transcript, and runnable demo default.
 
 ### Changed
 

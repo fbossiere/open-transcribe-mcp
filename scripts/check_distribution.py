@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "dist"
 PROHIBITED_SUFFIXES = {".env", ".key", ".pem", ".mp3", ".wav", ".m4a"}
+ALLOWED_AUDIO_SUFFIXES = ("tests/fixtures/open-transcribe-bilingual.wav",)
 
 
 def _one(pattern: str) -> Path:
@@ -22,7 +23,11 @@ def _reject_prohibited(names: list[str]) -> None:
     prohibited = [
         name
         for name in names
-        if Path(name).suffix.lower() in PROHIBITED_SUFFIXES or Path(name).name == ".env"
+        if (
+            Path(name).suffix.lower() in PROHIBITED_SUFFIXES
+            and not name.endswith(ALLOWED_AUDIO_SUFFIXES)
+        )
+        or Path(name).name == ".env"
     ]
     if prohibited:
         raise ValueError(f"distribution contains prohibited files: {prohibited}")

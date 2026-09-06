@@ -1,0 +1,4 @@
+SPEAKER_01 [en]: Hello. This is the OpenTranscribe synthetic test recording.
+SPEAKER_02 [fr]: Bonjour. Ceci est l'enregistrement de test synthétique d'OpenTranscribe.
+SPEAKER_01 [en]: A good recorder should not lock its owner into one transcription model.
+SPEAKER_02 [fr]: Un bon enregistreur doit laisser son propriétaire choisir son modèle de transcription.
