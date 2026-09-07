@@ -283,13 +283,27 @@ jobs:
           echo "digest=$digest" >>"$GITHUB_OUTPUT"
           echo "${repository}@${digest}" >container-digest.txt
 
-      - name: Make container package public
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh api --method PATCH
-          /users/${{ github.repository_owner }}/packages/container/open-transcribe-mcp
-          -f visibility=public
+      - name: Verify container package is public
+        shell: bash
+        run: |
+          set -euo pipefail
+          repository="${GITHUB_REPOSITORY,,}"
+          version="${RELEASE_TAG#v}"
+          token="$(curl --fail --silent --show-error \
+            "https://ghcr.io/token?service=ghcr.io&scope=repository:${repository}:pull" | \
+            jq --raw-output '.token')"
+          test -n "$token"
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error --output /dev/null \
+              --header "Authorization: Bearer $token" \
+              --header "Accept: application/vnd.oci.image.index.v1+json" \
+              "https://ghcr.io/v2/${repository}/manifests/${version}"; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "GHCR did not expose ${repository}:${version} publicly in time" >&2
+          exit 1
 
       - name: Attest container provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
