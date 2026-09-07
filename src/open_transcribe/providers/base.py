@@ -17,6 +17,23 @@ from open_transcribe.domain.capabilities import ModelDescriptor
 from open_transcribe.domain.errors import ErrorCode, ProviderError
 from open_transcribe.domain.transcript import CanonicalTranscript, CostEstimate
 
+_BACKOFF = wait_random_exponential(multiplier=0.25, max=4)
+
+_TRANSIENT_OUTCOMES: dict[str, tuple[ErrorCode, str]] = {
+    "provider_timeout": (
+        ErrorCode.PROVIDER_TIMEOUT,
+        "The transcription provider did not respond in time.",
+    ),
+    "provider_http_429": (
+        ErrorCode.RATE_LIMITED,
+        "The transcription provider rate limit was exceeded.",
+    ),
+}
+_TRANSIENT_FALLBACK = (
+    ErrorCode.PROVIDER_UNAVAILABLE,
+    "The transcription provider is temporarily unavailable.",
+)
+
 
 class TransientRequestError(Exception):
     def __init__(self, reason: str) -> None:
@@ -63,7 +80,7 @@ class HttpProvider(TranscriptionProvider):
         try:
             async for attempt in AsyncRetrying(
                 stop=stop_after_attempt(3),
-                wait=wait_random_exponential(multiplier=0.25, max=4),
+                wait=_BACKOFF,
                 retry=retry_if_exception_type(TransientRequestError),
                 reraise=True,
             ):
@@ -80,14 +97,10 @@ class HttpProvider(TranscriptionProvider):
                     self._raise_for_status(response, provider=provider, model=model)
                     return response, int((monotonic() - started) * 1000)
         except TransientRequestError as exc:
-            code = (
-                ErrorCode.PROVIDER_TIMEOUT
-                if exc.reason == "provider_timeout"
-                else ErrorCode.PROVIDER_UNAVAILABLE
-            )
+            code, message = _TRANSIENT_OUTCOMES.get(exc.reason, _TRANSIENT_FALLBACK)
             raise ProviderError(
                 code,
-                "The transcription provider is temporarily unavailable.",
+                message,
                 provider=provider,
                 model=model,
                 retryable=True,
