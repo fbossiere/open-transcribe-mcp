@@ -1,6 +1,6 @@
 project_id = "00000000-0000-0000-0000-000000000000"
 region     = "fr-par"
-image_tag  = "0.1.0"
+image_tag  = "1.0.0"
 
 environment_variables = {
   OT_DEFAULT_PROVIDER    = "microsoft"

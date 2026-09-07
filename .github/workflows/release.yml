@@ -194,3 +194,142 @@ jobs:
           done
           echo "MCP Registry did not expose version ${version} in time" >&2
           exit 1
+
+  publish-container:
+    name: Publish container to GHCR
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+      packages: write
+    outputs:
+      digest: ${{ steps.publish.outputs.digest }}
+    steps:
+      - name: Check out released tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.ref_name }}
+          persist-credentials: false
+
+      - name: Authenticate to GHCR
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      - name: Build and publish container
+        id: publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          major="${version%%.*}"
+          repository="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker buildx build \
+            --platform linux/amd64 \
+            --provenance=mode=max \
+            --sbom=true \
+            --push \
+            --metadata-file container-metadata.json \
+            --tag "${repository}:${version}" \
+            --tag "${repository}:${major}" \
+            --tag "${repository}:latest" \
+            .
+          digest="$(jq --raw-output '."containerimage.digest"' container-metadata.json)"
+          test "$digest" != null
+          echo "digest=$digest" >>"$GITHUB_OUTPUT"
+          echo "${repository}@${digest}" >container-digest.txt
+
+      - name: Make container package public
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh api --method PATCH
+          /users/${{ github.repository_owner }}/packages/container/open-transcribe-mcp
+          -f visibility=public
+
+      - name: Attest container provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/${{ github.repository }}
+          subject-digest: ${{ steps.publish.outputs.digest }}
+          push-to-registry: true
+
+      - name: Install checksum-verified Trivy
+        run: scripts/install-trivy.sh "$RUNNER_TEMP/trivy-bin"
+
+      - name: Generate container SBOM
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="$(cat container-digest.txt)"
+          "$RUNNER_TEMP/trivy-bin/trivy" image \
+            --format cyclonedx \
+            --output open-transcribe-mcp-container.cdx.json \
+            "$image"
+
+      - name: Upload container release metadata
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: container-release-metadata
+          path: |
+            container-digest.txt
+            open-transcribe-mcp-container.cdx.json
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-github-release:
+    name: Publish GitHub release
+    needs:
+      - publish-container
+      - publish-mcp-registry
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download Python distributions
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: python-distributions
+          path: release-assets/
+
+      - name: Download container release metadata
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: container-release-metadata
+          path: release-assets/
+
+      - name: Generate release checksums
+        working-directory: release-assets
+        run: sha256sum *.whl *.tar.gz *.txt *.json >SHA256SUMS
+
+      - name: Create immutable GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "${{ github.ref_name }}"
+          release-assets/*.whl
+          release-assets/*.tar.gz
+          release-assets/container-digest.txt
+          release-assets/open-transcribe-mcp-container.cdx.json
+          release-assets/SHA256SUMS
+          --repo "${{ github.repository }}"
+          --title "OpenTranscribe MCP ${{ github.ref_name }}"
+          --generate-notes
+          --latest
+          --verify-tag
+
+      - name: Verify GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          release="$(gh api "repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}")"
+          jq --exit-status \
+            '(.draft == false) and (.prerelease == false) and (.immutable == true) and (.assets | length == 5)' \
+            <<<"$release" >/dev/null

@@ -66,6 +66,9 @@ jobs:
           python-version: "3.12"
           enable-cache: true
 
+      - name: Validate release metadata coherence
+        run: python scripts/check_release_metadata.py --tag "v$(uv version --short)"
+
       - name: Build source and wheel distributions
         run: uv build
 
@@ -135,6 +138,30 @@ jobs:
       - name: Build container for scanning
         run: docker build --tag open-transcribe-ci:${{ github.sha }} .
 
+      - name: Smoke-test container
+        shell: bash
+        run: |
+          set -euo pipefail
+          container_name="open-transcribe-ci-${GITHUB_RUN_ID}"
+          docker run --detach \
+            --name "$container_name" \
+            --publish 127.0.0.1:8765:8000 \
+            --env OT_SECURITY__BEARER_TOKEN=ci-smoke-token \
+            "open-transcribe-ci:${GITHUB_SHA}"
+          trap 'docker rm --force "$container_name" >/dev/null 2>&1 || true' EXIT
+          for attempt in {1..20}; do
+            if curl --fail --silent --show-error http://127.0.0.1:8765/healthz; then
+              exit 0
+            fi
+            if ! docker inspect --format '{{.State.Running}}' "$container_name" | grep -qx true; then
+              docker logs "$container_name"
+              exit 1
+            fi
+            sleep 1
+          done
+          docker logs "$container_name"
+          exit 1
+
       - name: Scan container
         run: >-
           "$RUNNER_TEMP/trivy-bin/trivy" image
@@ -184,7 +211,7 @@ jobs:
         run: terraform fmt -check -diff -recursive
 
       - name: Initialize providers
-        run: terraform init -backend=false -input=false
+        run: terraform init -backend=false -input=false -lockfile=readonly
 
       - name: Validate configuration
         run: terraform validate -no-color

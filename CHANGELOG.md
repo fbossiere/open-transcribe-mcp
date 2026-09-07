@@ -4,12 +4,16 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-07
+
 ### Added
 
 - DNS-rebinding-resistant proxy downloads that connect only to the validated public address while preserving HTTPS SNI and Host routing.
 - Groq URL passthrough and complete word-plus-segment timestamp requests.
 - Strict MkDocs documentation builds, dependency auditing, filesystem/container scanning, and release artifact inspection.
 - A redistributable two-voice English/French synthetic audio fixture, reference transcript, and runnable demo default.
+- Strictly built documentation published on GitHub Pages.
+- Public GHCR images with OCI provenance, a CycloneDX SBOM, release checksums, and an immutable GitHub release.
 
 ### Changed
 
@@ -19,6 +23,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Terraform formatting and validation in CI.
 - The production Docker image now includes the optional S3 result-store dependency.
 - The development lock now requires a non-vulnerable pytest release.
+- Container builds install the project non-editably so the runtime image is independent of builder source paths.
+- Scaleway provider selection is committed and enforced as read-only in CI.
 
 ### Security
 
@@ -52,6 +58,7 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Docker, Scaleway, provider, privacy, security, Plaud, and ChatGPT/Drive documentation;
 - unit, provider contract, security, and MCP transport tests plus release CI.
 
-[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v1.0.0
 [0.1.1]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v0.1.1
 [0.1.0]: https://github.com/fbossiere/open-transcribe-mcp/tree/v0.1.0

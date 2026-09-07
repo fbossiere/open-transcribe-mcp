@@ -1,5 +1,6 @@
 site_name: OpenTranscribe MCP
 site_description: Provider-independent speech-to-text over MCP.
+site_url: https://fbossiere.github.io/open-transcribe-mcp/
 repo_url: https://github.com/fbossiere/open-transcribe-mcp
 edit_uri: edit/main/docs/
 strict: true

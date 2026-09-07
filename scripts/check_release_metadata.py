@@ -17,6 +17,14 @@ def _read_project_version() -> str:
     return str(project["project"]["version"])
 
 
+def _read_runtime_version() -> str:
+    init_source = (ROOT / "src/open_transcribe/__init__.py").read_text(encoding="utf-8")
+    match = re.search(r'^__version__ = "([^"]+)"$', init_source, flags=re.MULTILINE)
+    if match is None:
+        raise ValueError("src/open_transcribe/__init__.py has no static __version__")
+    return match.group(1)
+
+
 def _read_server_metadata() -> dict[str, Any]:
     return json.loads((ROOT / "server.json").read_text(encoding="utf-8"))
 
@@ -24,19 +32,25 @@ def _read_server_metadata() -> dict[str, Any]:
 def validate(tag: str) -> None:
     match = re.fullmatch(r"v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", tag)
     if match is None:
-        raise ValueError(f"release tag must be a stable SemVer tag such as v0.1.0, got {tag!r}")
+        raise ValueError(f"release tag must be a stable SemVer tag such as v1.0.0, got {tag!r}")
 
     version = tag.removeprefix("v")
+    major = version.split(".", maxsplit=1)[0]
     project_version = _read_project_version()
+    runtime_version = _read_runtime_version()
     server = _read_server_metadata()
     package_versions = [str(package.get("version")) for package in server.get("packages", [])]
     expected_marker = f"<!-- mcp-name: {SERVER_NAME} -->"
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")
+    release_docs = (ROOT / "docs/releasing.md").read_text(encoding="utf-8")
 
     errors: list[str] = []
     if project_version != version:
         errors.append(f"pyproject.toml version is {project_version}, expected {version}")
+    if runtime_version != version:
+        errors.append(f"runtime __version__ is {runtime_version}, expected {version}")
     if server.get("name") != SERVER_NAME:
         errors.append(f"server.json name is {server.get('name')!r}, expected {SERVER_NAME!r}")
     if server.get("version") != version:
@@ -53,6 +67,10 @@ def validate(tag: str) -> None:
         errors.append(f"CHANGELOG.md is missing a {version} release heading")
     if f"open-transcribe-mcp:{version}" not in readme:
         errors.append(f"README.md has no Docker example for version {version}")
+    if f"`{major}.x` | Yes" not in security:
+        errors.append(f"SECURITY.md does not mark {major}.x as supported")
+    if f"--tag {tag}" not in release_docs:
+        errors.append(f"docs/releasing.md has no validation example for {tag}")
 
     if errors:
         raise ValueError("release metadata validation failed:\n- " + "\n- ".join(errors))
@@ -60,7 +78,7 @@ def validate(tag: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tag", required=True, help="GitHub release tag, for example v0.1.0")
+    parser.add_argument("--tag", required=True, help="GitHub release tag, for example v1.0.0")
     args = parser.parse_args()
     validate(args.tag)
 

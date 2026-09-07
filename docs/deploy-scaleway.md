@@ -135,7 +135,7 @@ Use an encrypted remote state backend with tightly restricted access. Secret Man
 Use a new immutable tag for every build:
 
 ```bash
-docker buildx build --platform linux/amd64 --push --tag "$REGISTRY_ENDPOINT/open-transcribe-mcp:0.1.1" ../..
+docker buildx build --platform linux/amd64 --push --tag "$REGISTRY_ENDPOINT/open-transcribe-mcp:1.0.0" ../..
 ```
 
 Change `image_tag` to the same value, run `terraform plan`, then apply. For a tag that must be reused, pass its `sha256:...` registry digest as `image_digest`; Terraform uses it to force an exact redeployment.

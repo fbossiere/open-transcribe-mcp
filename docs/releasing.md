@@ -2,9 +2,13 @@
 
 Publishing is automated when a stable version tag from `main` is pushed. The release workflow
 validates and tests the tagged source, builds and inspects the Python distributions, publishes them
-to PyPI with Trusted Publishing, then publishes `server.json` to the official MCP Registry.
+to PyPI with Trusted Publishing, publishes `server.json` to the official MCP Registry, and pushes
+a provenance-attested image to GHCR. It creates the immutable GitHub release with checksums and a
+CycloneDX container SBOM only after every publication succeeds.
 
-No long-lived publication token is stored in GitHub. Both registries use GitHub OIDC.
+No long-lived publication token is stored in GitHub. PyPI and the MCP Registry use GitHub OIDC;
+GHCR uses the release job's short-lived, package-scoped `GITHUB_TOKEN`, and provenance attestation
+uses OIDC.
 
 ## One-time PyPI setup
 
@@ -43,12 +47,12 @@ matching `mcp-name` marker in `README.md`.
    uv run pip-audit
    uv build
    uv run python scripts/check_distribution.py
-   uv run python scripts/check_release_metadata.py --tag v0.1.1
+   uv run python scripts/check_release_metadata.py --tag v1.0.0
    ```
 
 4. Merge the release preparation pull request.
 5. Create and push the matching tag from the merged `main` commit.
-6. Wait for the release workflow to publish and verify PyPI and MCP Registry.
+6. Wait for the release workflow to publish and verify PyPI, MCP Registry, GHCR, and the GitHub release.
 
 The workflow rejects malformed tags, tags not reachable from `main`, and mismatches among the tag,
 changelog, README example, Python package version, MCP server version, and MCP package version.
