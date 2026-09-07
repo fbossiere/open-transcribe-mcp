@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "open-transcribe-mcp"
-version = "0.1.1"
+version = "1.0.0"
 description = "Provider-independent speech-to-text over MCP."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -12,7 +12,7 @@ license = "Apache-2.0"
 authors = [{ name = "OpenTranscribe contributors" }]
 keywords = ["mcp", "speech-to-text", "transcription", "fastmcp", "plaud"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 5 - Production/Stable",
   "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3.12",
   "Topic :: Multimedia :: Sound/Audio :: Speech",
@@ -50,6 +50,7 @@ open-transcribe-mcp = "open_transcribe.server:main"
 Homepage = "https://github.com/fbossiere/open-transcribe-mcp"
 Repository = "https://github.com/fbossiere/open-transcribe-mcp"
 Issues = "https://github.com/fbossiere/open-transcribe-mcp/issues"
+Documentation = "https://fbossiere.github.io/open-transcribe-mcp/"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/open_transcribe"]

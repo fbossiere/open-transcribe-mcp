@@ -89,7 +89,7 @@ class Settings(BaseSettings):
         if self.security.auth_mode == "bearer" and self.security.bearer_token is None:
             raise ValueError("OT_SECURITY__BEARER_TOKEN is required for bearer auth")
         if self.security.auth_mode == "oidc":
-            raise ValueError("OIDC is reserved for v0.2; use bearer or none in v0.1")
+            raise ValueError("OIDC is not implemented; use bearer or none")
         if self.environment == "prod" and self.security.auth_mode == "none":
             raise ValueError("unauthenticated mode is not allowed in production")
         if self.result_store.backend != "disabled" and self.result_store.cursor_secret is None:

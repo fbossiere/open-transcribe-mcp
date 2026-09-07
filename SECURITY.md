@@ -2,7 +2,12 @@
 
 ## Supported versions
 
-Security fixes are provided for the latest `0.1.x` release. Until OpenTranscribe reaches 1.0, users should treat every minor release as potentially contract-changing and keep deployments current.
+| Version | Supported |
+| --- | --- |
+| `1.x` | Yes |
+| `< 1.0` | No |
+
+Security fixes are provided for the latest `1.x` release. Operators should keep deployments current.
 
 ## Report a vulnerability privately
 

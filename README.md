@@ -28,7 +28,7 @@ OpenTranscribe does not jailbreak hardware or bypass access controls. It works o
 
 OpenTranscribe keeps the integration boundary stable: the recorder supplies an audio file or HTTPS URL, the server selects or calls the requested speech-to-text provider, and downstream tools receive the same canonical transcript shape.
 
-## What v0.1 ships
+## What v1 ships
 
 - MCP Streamable HTTP at `/mcp`, with stateless operation and bearer authentication
 - `transcribe_audio`, `list_transcription_models`, `estimate_transcription_cost`, `get_transcript_chunk`, and `delete_transcript`
@@ -111,15 +111,17 @@ Provider choice does not alter the response contract. Set `provider` and `model`
 ## Docker
 
 ```bash
-docker build -t open-transcribe-mcp:0.1.1 .
+docker build -t open-transcribe-mcp:1.0.0 .
 docker run --rm -p 8000:8000 \
   -e OT_ENVIRONMENT=prod \
   -e OT_MICROSOFT__ENDPOINT="https://YOUR-RESOURCE.cognitiveservices.azure.com" \
   -e OT_MICROSOFT__API_KEY="YOUR-KEY" \
   -e OT_SECURITY__AUTH_MODE=bearer \
   -e OT_SECURITY__BEARER_TOKEN="YOUR-RANDOM-TOKEN" \
-  open-transcribe-mcp:0.1.1
+  open-transcribe-mcp:1.0.0
 ```
+
+The published image is also available as `ghcr.io/fbossiere/open-transcribe-mcp:1.0.0`.
 
 ## Configuration
 
@@ -152,7 +154,7 @@ Read [SECURITY.md](SECURITY.md), [the threat model](docs/security.md), and [the 
 
 ## Known limitations
 
-OpenTranscribe v0.1 targets self-hosted, single-tenant installations. Provider feature parity is deliberately not guaranteed; capability negotiation exposes differences instead of hiding them. URL ingestion is the only remote input type. Synchronous provider limits still apply. OIDC and asynchronous jobs are planned for later releases. The memory store is neither durable nor horizontally scalable. S3 lookups prioritize a simple deployment contract over very-large-bucket indexing; dedicate the result prefix and enforce lifecycle deletion.
+OpenTranscribe v1.0 targets self-hosted, single-tenant installations. Provider feature parity is deliberately not guaranteed; capability negotiation exposes differences instead of hiding them. URL ingestion is the only remote input type. Synchronous provider limits still apply. OIDC and asynchronous jobs are planned for later releases. The memory store is neither durable nor horizontally scalable. S3 lookups prioritize a simple deployment contract over very-large-bucket indexing; dedicate the result prefix and enforce lifecycle deletion.
 
 Application controls do not replace network policy. Internet-facing operators should still combine exact source-host allow-listing with egress firewall rules.
 
@@ -165,6 +167,8 @@ Provider prices, APIs, and capabilities change. The checked-in metadata is infor
 Transcript content is untrusted data. OpenTranscribe never interprets it as instructions; downstream agents must preserve the same boundary.
 
 ## Documentation
+
+The canonical documentation site is [fbossiere.github.io/open-transcribe-mcp](https://fbossiere.github.io/open-transcribe-mcp/).
 
 - [Architecture](docs/architecture.md)
 - [Providers and capabilities](docs/providers.md)
