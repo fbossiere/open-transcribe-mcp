@@ -4,6 +4,10 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Added
+
+- A dev container reproducing the CI toolchain: pinned `uv`, Python 3.12, Docker, Terraform, the GitHub CLI, and the fixture-generation audio tools.
+
 ## [1.0.0] - 2026-09-07
 
 ### Added

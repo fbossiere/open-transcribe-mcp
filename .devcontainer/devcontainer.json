@@ -1,0 +1,68 @@
+{
+  "name": "OpenTranscribe MCP",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/terraform:1": {
+      "version": "1.16.1",
+      "tflint": "none",
+      "terragrunt": "none"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "containerEnv": {
+    "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv",
+    "UV_CACHE_DIR": "/home/vscode/.cache/uv",
+    "UV_LINK_MODE": "copy",
+    "PYTHONUNBUFFERED": "1"
+  },
+  "remoteEnv": {
+    "PATH": "/home/vscode/.venv/bin:/home/vscode/.local/bin:${containerEnv:PATH}"
+  },
+  "mounts": [
+    "source=open-transcribe-mcp-uv-cache,target=/home/vscode/.cache/uv,type=volume"
+  ],
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": {
+      "label": "OpenTranscribe MCP (HTTP)",
+      "onAutoForward": "notify"
+    }
+  },
+  "remoteUser": "vscode",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.mypy-type-checker",
+        "charliermarsh.ruff",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml",
+        "hashicorp.terraform",
+        "ms-azuretools.vscode-docker",
+        "github.vscode-github-actions"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/home/vscode/.venv/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestArgs": ["tests"],
+        "ruff.importStrategy": "fromEnvironment",
+        "mypy-type-checker.importStrategy": "fromEnvironment",
+        "mypy-type-checker.args": ["--config-file=pyproject.toml"],
+        "editor.rulers": [100],
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports.ruff": "explicit"
+          }
+        }
+      }
+    }
+  }
+}
