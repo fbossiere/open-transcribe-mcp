@@ -15,6 +15,10 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - URL redaction and source log fields no longer raise on a URL they cannot parse, which a hostile redirect target could previously trigger inside an error path; an unparseable URL degrades to a placeholder instead of being echoed.
 - Provider rate limits are now reported as `RATE_LIMITED`. The code was documented in the error model but unreachable, because a `429` was classified as a generic transient failure and surfaced as `PROVIDER_UNAVAILABLE` once retries were exhausted.
 
+### Security
+
+- `.gitignore` and `.dockerignore` now cover every `.env.*` variant rather than `.env` alone, so a local credential file such as `.env.local` can no longer be staged by a bulk `git add` or reach a build context. `.env.example` stays tracked.
+
 ## [1.0.0] - 2026-09-07
 
 ### Added
