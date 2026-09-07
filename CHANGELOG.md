@@ -10,6 +10,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- A malformed source URL is now rejected as `SOURCE_URL_REJECTED`. An empty, overlong, or unmappable IDNA label escaped as a raw `UnicodeError`, and a malformed bracketed authority or a netloc failing NFKC normalization escaped as a raw `ValueError`, so a bad URL was reported as an internal error rather than a rejected source. A hostname that normalizes to nothing is rejected rather than accepted as empty.
+- URL redaction and source log fields no longer raise on a URL they cannot parse, which a hostile redirect target could previously trigger inside an error path; an unparseable URL degrades to a placeholder instead of being echoed.
 - Provider rate limits are now reported as `RATE_LIMITED`. The code was documented in the error model but unreachable, because a `429` was classified as a generic transient failure and surfaced as `PROVIDER_UNAVAILABLE` once retries were exhausted.
 
 ## [1.0.0] - 2026-09-07
