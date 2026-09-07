@@ -1,15 +1,23 @@
 """Retry policy (SPEC 42) and provider error normalization (SPEC 41)."""
 
+from datetime import UTC, datetime, timedelta
+from email.utils import format_datetime
+
 import httpx
 import pytest
-from tenacity import wait_none
+from tenacity import AsyncRetrying, RetryCallState, wait_fixed, wait_none
 
 from open_transcribe.domain.audio import ResolvedAudioSource, TranscribeAudioRequest
 from open_transcribe.domain.capabilities import ModelDescriptor
 from open_transcribe.domain.errors import ErrorCode, ProviderError
 from open_transcribe.domain.transcript import CanonicalTranscript, CostEstimate
 from open_transcribe.providers import base
-from open_transcribe.providers.base import HttpProvider, safe_validate_transcript
+from open_transcribe.providers.base import (
+    HttpProvider,
+    TransientRequestError,
+    parse_retry_after,
+    safe_validate_transcript,
+)
 
 PROVIDER_SECRET_BODY = {"detail": "https://bucket.example/a.mp3?X-Amz-Signature=must-not-leak"}
 
@@ -143,6 +151,106 @@ async def test_unmapped_client_error_is_normalized_without_retrying() -> None:
 async def test_normalized_errors_never_carry_the_provider_body(status_code: int) -> None:
     _, error = await attempt(httpx.Response(status_code, json=PROVIDER_SECRET_BODY))
     assert "must-not-leak" not in error.response.model_dump_json()
+
+
+@pytest.mark.parametrize(
+    ("header", "expected"),
+    [
+        ("0", 0.0),
+        ("5", 5.0),
+        ("  7  ", 7.0),
+        ("-3", 0.0),
+        (None, None),
+        ("", None),
+        ("soon", None),
+        ("nan", None),
+        ("1e400", None),
+    ],
+)
+def test_retry_after_delay_seconds_is_parsed(header: str | None, expected: float | None) -> None:
+    assert parse_retry_after(header) == expected
+
+
+def test_retry_after_http_date_is_parsed() -> None:
+    deadline = datetime.now(UTC) + timedelta(seconds=30)
+    parsed = parse_retry_after(format_datetime(deadline, usegmt=True))
+    assert parsed is not None
+    assert 25 <= parsed <= 30
+
+
+def test_retry_after_http_date_already_elapsed_does_not_wait() -> None:
+    elapsed = datetime.now(UTC) - timedelta(minutes=1)
+    assert parse_retry_after(format_datetime(elapsed, usegmt=True)) == 0.0
+
+
+def retry_state(exc: BaseException) -> RetryCallState:
+    state = RetryCallState(
+        retry_object=AsyncRetrying(),
+        fn=None,  # type: ignore[arg-type]
+        args=(),
+        kwargs={},
+    )
+    state.set_exception((type(exc), exc, exc.__traceback__))
+    return state
+
+
+def test_retry_after_hint_overrides_the_backoff() -> None:
+    hinted = TransientRequestError("provider_http_429", retry_after=2.5)
+    assert base._retry_wait(retry_state(hinted)) == 2.5
+
+
+def test_retry_after_never_shortens_the_backoff(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(base, "_BACKOFF", wait_fixed(3))
+    hinted = TransientRequestError("provider_http_429", retry_after=0.5)
+    assert base._retry_wait(retry_state(hinted)) == 3
+
+
+def test_hostile_retry_after_is_capped() -> None:
+    hinted = TransientRequestError("provider_http_429", retry_after=86_400)
+    assert base._retry_wait(retry_state(hinted)) == base._MAX_RETRY_AFTER_SECONDS
+
+
+def test_backoff_applies_without_a_retry_after_hint(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(base, "_BACKOFF", wait_fixed(1.5))
+    assert base._retry_wait(retry_state(TransientRequestError("provider_http_503"))) == 1.5
+
+
+@pytest.mark.asyncio
+async def test_retry_after_header_reaches_every_retry_decision(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    hints: list[float | None] = []
+
+    def spy(state: RetryCallState) -> float:
+        outcome = state.outcome
+        exc = outcome.exception() if outcome else None
+        hints.append(exc.retry_after if isinstance(exc, TransientRequestError) else None)
+        return 0.0
+
+    monkeypatch.setattr(base, "_retry_wait", spy)
+    sender, error = await attempt(httpx.Response(429, headers={"retry-after": "7"}))
+    assert sender.calls == 3
+    assert hints
+    assert set(hints) == {7.0}, "SPEC 42 requires the hint to drive every retry decision"
+    assert error.response.code == ErrorCode.RATE_LIMITED
+
+
+@pytest.mark.asyncio
+async def test_a_provider_that_sends_no_hint_falls_back_to_the_backoff(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    hints: list[float | None] = []
+
+    def spy(state: RetryCallState) -> float:
+        outcome = state.outcome
+        exc = outcome.exception() if outcome else None
+        hints.append(exc.retry_after if isinstance(exc, TransientRequestError) else None)
+        return 0.0
+
+    monkeypatch.setattr(base, "_retry_wait", spy)
+    await attempt(httpx.Response(503))
+    assert hints
+    assert set(hints) == {None}
 
 
 def test_status_mapping_agrees_with_the_retry_path_on_rate_limits() -> None:

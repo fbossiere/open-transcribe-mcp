@@ -4,6 +4,10 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Added
+
+- Provider `Retry-After` headers are now honoured between retries, in both the delay-seconds and HTTP-date forms, bounded so a distant or hostile hint cannot hold a request open.
+
 ### Fixed
 
 - Provider rate limits are now reported as `RATE_LIMITED`. The code was documented in the error model but unreachable, because a `429` was classified as a generic transient failure and surfaced as `PROVIDER_UNAVAILABLE` once retries were exhausted.

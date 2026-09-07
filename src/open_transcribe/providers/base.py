@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
+from math import isfinite
 from time import monotonic
 from typing import Any
 
@@ -7,6 +10,7 @@ import httpx
 from pydantic import ValidationError
 from tenacity import (
     AsyncRetrying,
+    RetryCallState,
     retry_if_exception_type,
     stop_after_attempt,
     wait_random_exponential,
@@ -34,11 +38,48 @@ _TRANSIENT_FALLBACK = (
     "The transcription provider is temporarily unavailable.",
 )
 
+# A provider may ask for an arbitrarily distant retry; honour the hint only as far as
+# a request may reasonably be held open, and fall back to the backoff beyond that.
+_MAX_RETRY_AFTER_SECONDS = 30.0
+
 
 class TransientRequestError(Exception):
-    def __init__(self, reason: str) -> None:
+    def __init__(self, reason: str, retry_after: float | None = None) -> None:
         super().__init__(reason)
         self.reason = reason
+        self.retry_after = retry_after
+
+
+def parse_retry_after(value: str | None) -> float | None:
+    """Read an RFC 9110 Retry-After value, given either as seconds or as an HTTP date."""
+    if value is None:
+        return None
+    candidate = value.strip()
+    if not candidate:
+        return None
+    try:
+        seconds = float(candidate)
+    except ValueError:
+        try:
+            deadline = parsedate_to_datetime(candidate)
+        except (TypeError, ValueError):
+            return None
+        if deadline.tzinfo is None:
+            deadline = deadline.replace(tzinfo=UTC)
+        seconds = (deadline - datetime.now(UTC)).total_seconds()
+    if not isfinite(seconds):
+        return None
+    return max(seconds, 0.0)
+
+
+def _retry_wait(retry_state: RetryCallState) -> float:
+    """Prefer a provider Retry-After hint over the backoff without stalling on it."""
+    backoff = _BACKOFF(retry_state)
+    outcome = retry_state.outcome
+    exc = outcome.exception() if outcome else None
+    if isinstance(exc, TransientRequestError) and exc.retry_after is not None:
+        return min(max(exc.retry_after, backoff), _MAX_RETRY_AFTER_SECONDS)
+    return backoff
 
 
 class TranscriptionProvider(ABC):
@@ -80,7 +121,7 @@ class HttpProvider(TranscriptionProvider):
         try:
             async for attempt in AsyncRetrying(
                 stop=stop_after_attempt(3),
-                wait=_BACKOFF,
+                wait=_retry_wait,
                 retry=retry_if_exception_type(TransientRequestError),
                 reraise=True,
             ):
@@ -92,8 +133,9 @@ class HttpProvider(TranscriptionProvider):
                     except httpx.NetworkError as exc:
                         raise TransientRequestError("provider_network_failure") from exc
                     if response.status_code == 429 or response.status_code >= 500:
+                        retry_after = parse_retry_after(response.headers.get("retry-after"))
                         await response.aclose()
-                        self._raise_transient(f"provider_http_{response.status_code}")
+                        self._raise_transient(f"provider_http_{response.status_code}", retry_after)
                     self._raise_for_status(response, provider=provider, model=model)
                     return response, int((monotonic() - started) * 1000)
         except TransientRequestError as exc:
@@ -109,8 +151,8 @@ class HttpProvider(TranscriptionProvider):
         raise AssertionError("retry loop returned no result")
 
     @staticmethod
-    def _raise_transient(reason: str) -> None:
-        raise TransientRequestError(reason)
+    def _raise_transient(reason: str, retry_after: float | None = None) -> None:
+        raise TransientRequestError(reason, retry_after)
 
     @staticmethod
     def _raise_for_status(response: httpx.Response, *, provider: str, model: str) -> None:
