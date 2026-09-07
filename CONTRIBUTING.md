@@ -24,6 +24,8 @@ A [dev container](.devcontainer/devcontainer.json) reproduces the CI toolchain: 
 
 The container creates its virtual environment at `/home/vscode/.venv` rather than `./.venv`, so a host environment in the working tree is never reused, and locked dependencies are synced on create. No `.env` is generated: settings load `.env` from the working directory, so copy `.env.example` yourself when you need to run the server. Trivy is not preinstalled — run `scripts/install-trivy.sh ~/.local/bin` when you need the security job locally.
 
+Git pushes use the editor's forwarded credentials. The GitHub CLI is installed but authenticates separately: a `GH_TOKEN` exported on the host is passed through, otherwise run `gh auth login` once inside the container. Neither is needed to publish a release, which runs in GitHub Actions over OIDC.
+
 ## Contribution workflow
 
 1. Fork the repository and create a focused branch from `main`.

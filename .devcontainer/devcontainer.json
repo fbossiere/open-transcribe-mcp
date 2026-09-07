@@ -19,7 +19,8 @@
     "PYTHONUNBUFFERED": "1"
   },
   "remoteEnv": {
-    "PATH": "/home/vscode/.venv/bin:/home/vscode/.local/bin:${containerEnv:PATH}"
+    "PATH": "/home/vscode/.venv/bin:/home/vscode/.local/bin:${containerEnv:PATH}",
+    "GH_TOKEN": "${localEnv:GH_TOKEN}"
   },
   "mounts": [
     "source=open-transcribe-mcp-uv-cache,target=/home/vscode/.cache/uv,type=volume"
