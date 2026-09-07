@@ -1,4 +1,5 @@
 import os
+from collections.abc import AsyncIterator
 from unittest.mock import AsyncMock
 
 import httpx
@@ -8,6 +9,7 @@ import respx
 from open_transcribe.domain.audio import SourceDelivery
 from open_transcribe.domain.errors import ErrorCode, OpenTranscribeError
 from open_transcribe.providers.registry import ProviderRegistry
+from open_transcribe.security import ssrf
 from open_transcribe.settings import Settings
 from open_transcribe.sources import resolver
 from open_transcribe.sources.resolver import SourceBroker
@@ -170,3 +172,134 @@ def test_passthrough_is_rejected_when_model_requires_upload(settings: Settings) 
     with pytest.raises(OpenTranscribeError) as caught:
         SourceBroker(settings).select_delivery(SourceDelivery.PASSTHROUGH, model)
     assert caught.value.response.code == ErrorCode.UNSUPPORTED_CAPABILITY
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_streamed_body_over_the_limit_is_rejected_without_a_declared_length(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A provider may omit or understate content-length; the stream itself must be bounded."""
+    monkeypatch.setattr(
+        resolver,
+        "validate_source_url",
+        AsyncMock(return_value=validated("https://media.example/unbounded")),
+    )
+    bounded = settings.model_copy(update={"max_audio_size_mb": 1})
+    delivered = 0
+
+    async def oversized() -> AsyncIterator[bytes]:
+        nonlocal delivered
+        for _ in range(4):
+            chunk = b"ID3" + b"\x00" * (512 * 1024)
+            delivered += len(chunk)
+            yield chunk
+
+    route = respx.get("https://93.184.216.34/unbounded").mock(
+        return_value=httpx.Response(
+            200, headers={"content-type": "audio/mpeg"}, content=oversized()
+        )
+    )
+    model = ProviderRegistry.from_settings(bounded).get_model("groq", "whisper-large-v3")
+    with pytest.raises(OpenTranscribeError) as caught:
+        async with SourceBroker(bounded).resolve(
+            "https://media.example/unbounded", SourceDelivery.PROXY, model
+        ):
+            pass
+
+    assert caught.value.response.code == ErrorCode.SOURCE_TOO_LARGE
+    assert "content-length" not in route.calls[0].response.headers
+    assert delivered < 4 * (512 * 1024 + 3), "the download must stop before draining the body"
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_redirect_to_a_prohibited_destination_is_rejected(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The redirect target is re-validated against the SSRF policy, not merely re-resolved."""
+
+    async def resolve(host: str, _: int) -> tuple[str, ...]:
+        return ("169.254.169.254",) if host == "metadata.example" else ("93.184.216.34",)
+
+    monkeypatch.setattr(ssrf, "_resolve", resolve)
+    respx.get("https://93.184.216.34/start").mock(
+        return_value=httpx.Response(302, headers={"location": "https://metadata.example/latest"})
+    )
+    model = ProviderRegistry.from_settings(settings).get_model("groq", "whisper-large-v3")
+    with pytest.raises(OpenTranscribeError) as caught:
+        async with SourceBroker(settings).resolve(
+            "https://media.example/start", SourceDelivery.PROXY, model
+        ):
+            pass
+
+    assert caught.value.response.code == ErrorCode.SOURCE_URL_REJECTED
+    assert "prohibited network destination" in caught.value.response.message
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_redirect_chain_longer_than_the_limit_is_rejected(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def resolve(_: str, __: int) -> tuple[str, ...]:
+        return ("93.184.216.34",)
+
+    monkeypatch.setattr(ssrf, "_resolve", resolve)
+    limited = settings.model_copy(
+        update={"security": settings.security.model_copy(update={"max_redirects": 1})}
+    )
+    respx.get("https://93.184.216.34/hop-1").mock(
+        return_value=httpx.Response(302, headers={"location": "/hop-2"})
+    )
+    hop_2 = respx.get("https://93.184.216.34/hop-2").mock(
+        return_value=httpx.Response(302, headers={"location": "/hop-3"})
+    )
+    model = ProviderRegistry.from_settings(limited).get_model("groq", "whisper-large-v3")
+    with pytest.raises(OpenTranscribeError) as caught:
+        async with SourceBroker(limited).resolve(
+            "https://media.example/hop-1", SourceDelivery.PROXY, model
+        ):
+            pass
+
+    assert caught.value.response.code == ErrorCode.SOURCE_URL_REJECTED
+    assert hop_2.called, "the allowed hop is followed before the limit stops the chain"
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_redirect_without_a_location_is_rejected(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        resolver,
+        "validate_source_url",
+        AsyncMock(return_value=validated("https://media.example/headless")),
+    )
+    respx.get("https://93.184.216.34/headless").mock(return_value=httpx.Response(302))
+    model = ProviderRegistry.from_settings(settings).get_model("groq", "whisper-large-v3")
+    with pytest.raises(OpenTranscribeError) as caught:
+        async with SourceBroker(settings).resolve(
+            "https://media.example/headless", SourceDelivery.PROXY, model
+        ):
+            pass
+
+    assert caught.value.response.code == ErrorCode.SOURCE_URL_REJECTED
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_network_failure_during_download_is_retryable_and_redacted(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    signed = "https://media.example/audio.mp3?X-Amz-Signature=must-not-leak"
+    monkeypatch.setattr(resolver, "validate_source_url", AsyncMock(return_value=validated(signed)))
+    respx.get("https://93.184.216.34/audio.mp3").mock(side_effect=httpx.ConnectError("no route"))
+    model = ProviderRegistry.from_settings(settings).get_model("groq", "whisper-large-v3")
+    with pytest.raises(OpenTranscribeError) as caught:
+        async with SourceBroker(settings).resolve(signed, SourceDelivery.PROXY, model):
+            pass
+
+    assert caught.value.response.code == ErrorCode.SOURCE_UNAVAILABLE
+    assert caught.value.response.retryable
+    assert "must-not-leak" not in caught.value.response.model_dump_json()
