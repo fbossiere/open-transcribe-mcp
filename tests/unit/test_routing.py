@@ -1,9 +1,19 @@
+from pathlib import Path
+
 import pytest
 
-from open_transcribe.domain.audio import TranscribeAudioRequest
+from open_transcribe.domain.audio import (
+    ResolvedAudioSource,
+    TimestampMode,
+    TranscribeAudioRequest,
+    TranscriptStyle,
+)
+from open_transcribe.domain.capabilities import ModelDescriptor, ModelLifecycle
 from open_transcribe.domain.errors import ErrorCode, OpenTranscribeError
+from open_transcribe.domain.transcript import CanonicalTranscript, CostEstimate
+from open_transcribe.providers.base import TranscriptionProvider
 from open_transcribe.providers.registry import ProviderRegistry
-from open_transcribe.routing.router import Router
+from open_transcribe.routing.router import Router, load_routing
 from open_transcribe.settings import Settings
 
 
@@ -59,3 +69,171 @@ def test_no_configured_provider_is_an_error(config_dir: object) -> None:
     with pytest.raises(OpenTranscribeError) as caught:
         Router(registry, settings).route(_request())
     assert caught.value.response.code == ErrorCode.PROVIDER_UNAVAILABLE
+
+
+def descriptor(**overrides: object) -> ModelDescriptor:
+    """A fully capable model, so each test restricts exactly one dimension."""
+    data: dict[str, object] = {
+        "provider": "probe",
+        "model": "probe-1",
+        "display_name": "Probe 1",
+        "lifecycle": ModelLifecycle.GA,
+        "languages": "dynamic",
+        "supports_url_input": True,
+        "supports_diarization": True,
+        "timestamp_modes": {TimestampMode.NONE, TimestampMode.SEGMENT, TimestampMode.WORD},
+        "transcript_styles": {TranscriptStyle.CLEAN, TranscriptStyle.VERBATIM},
+        "supports_language_detection": True,
+        "supports_code_switching": True,
+        "supports_phrase_hints": True,
+        "configured": True,
+    }
+    data.update(overrides)
+    return ModelDescriptor.model_validate(data)
+
+
+class ProbeProvider(TranscriptionProvider):
+    provider_id = "probe"
+    configured = True
+
+    def __init__(self, descriptors: list[ModelDescriptor]) -> None:
+        self.descriptors = descriptors
+
+    def list_models(self) -> list[ModelDescriptor]:
+        return self.descriptors
+
+    async def transcribe(
+        self,
+        request: TranscribeAudioRequest,
+        source: ResolvedAudioSource,
+        model: ModelDescriptor,
+    ) -> CanonicalTranscript:
+        raise NotImplementedError
+
+    def estimate_cost(self, model: str, duration_seconds: float) -> CostEstimate:
+        raise NotImplementedError
+
+
+def probe_router(settings: Settings, **overrides: object) -> Router:
+    registry = ProviderRegistry([ProbeProvider([descriptor(**overrides)])])
+    return Router(registry, settings, routing_config={})
+
+
+@pytest.mark.parametrize(
+    ("capability", "request_overrides", "unsatisfied"),
+    [
+        ({"lifecycle": ModelLifecycle.PREVIEW}, {"allow_preview_models": False}, "preview_model"),
+        ({"supports_diarization": False}, {}, "diarization"),
+        ({"timestamp_modes": {TimestampMode.NONE}}, {"timestamps": "word"}, "timestamps:word"),
+        ({"transcript_styles": {TranscriptStyle.VERBATIM}}, {}, "transcript_style:clean"),
+        ({"supports_language_detection": False}, {}, "language_detection"),
+        ({"supports_phrase_hints": False}, {"phrase_hints": ["acme"]}, "phrase_hints"),
+        ({"max_audio_seconds": 60}, {"duration_seconds_hint": 120}, "max_audio_seconds"),
+    ],
+)
+def test_every_capability_dimension_is_negotiated(
+    settings: Settings,
+    capability: dict[str, object],
+    request_overrides: dict[str, object],
+    unsatisfied: str,
+) -> None:
+    router = probe_router(settings, **capability)
+    with pytest.raises(OpenTranscribeError) as caught:
+        router.route(_request(**request_overrides))
+    assert caught.value.response.code == ErrorCode.UNSUPPORTED_CAPABILITY
+    assert caught.value.response.details["unsatisfied"] == [unsatisfied]
+
+
+def test_a_fully_capable_model_satisfies_the_default_request(settings: Settings) -> None:
+    """Guard the negotiation tests above: the baseline descriptor must route cleanly."""
+    assert probe_router(settings).route(_request())[0].model.key == "probe/probe-1"
+
+
+def test_fixed_routing_returns_only_the_requested_model(settings: Settings) -> None:
+    registry = ProviderRegistry.from_settings(settings)
+    candidates = Router(registry, settings).route(
+        _request(provider="elevenlabs", routing_policy="fixed")
+    )
+    assert [candidate.model.key for candidate in candidates] == ["elevenlabs/scribe-v2"]
+
+
+def test_quality_routing_follows_the_configured_ranking(settings: Settings) -> None:
+    registry = ProviderRegistry.from_settings(settings)
+    candidates = Router(registry, settings).route(
+        _request(routing_policy="quality", diarization=False, transcript_style="verbatim")
+    )
+    assert [candidate.model.key for candidate in candidates] == [
+        "microsoft/MAI-Transcribe-2",
+        "elevenlabs/scribe-v2",
+        "groq/whisper-large-v3",
+        "groq/whisper-large-v3-turbo",
+    ]
+
+
+def test_latency_routing_follows_the_configured_ranking(settings: Settings) -> None:
+    registry = ProviderRegistry.from_settings(settings)
+    candidates = Router(registry, settings).route(
+        _request(routing_policy="latency", diarization=False, transcript_style="verbatim")
+    )
+    assert [candidate.model.key for candidate in candidates] == [
+        "groq/whisper-large-v3-turbo",
+        "microsoft/MAI-Transcribe-2",
+        "elevenlabs/scribe-v2",
+        "groq/whisper-large-v3",
+    ]
+
+
+def test_unranked_models_sort_after_ranked_ones(settings: Settings) -> None:
+    registry = ProviderRegistry.from_settings(settings)
+    router = Router(
+        registry, settings, routing_config={"policies": {"quality": ["groq/whisper-large-v3"]}}
+    )
+    candidates = router.route(
+        _request(routing_policy="quality", diarization=False, transcript_style="verbatim")
+    )
+    assert [candidate.model.key for candidate in candidates] == [
+        "groq/whisper-large-v3",
+        "elevenlabs/scribe-v2",
+        "groq/whisper-large-v3-turbo",
+        "microsoft/MAI-Transcribe-2",
+    ]
+
+
+def test_an_explicit_provider_outranks_the_policy_order(settings: Settings) -> None:
+    """A caller naming a provider must be served by it, with the policy ordering the fallbacks."""
+    registry = ProviderRegistry.from_settings(settings)
+    candidates = Router(registry, settings).route(
+        _request(
+            provider="elevenlabs",
+            routing_policy="cost",
+            diarization=False,
+            transcript_style="verbatim",
+        )
+    )
+    assert candidates[0].model.key == "elevenlabs/scribe-v2"
+    assert candidates[1].model.key == "groq/whisper-large-v3-turbo", "cheapest fallback first"
+
+
+def test_disabled_fallback_yields_a_single_candidate(settings: Settings) -> None:
+    registry = ProviderRegistry.from_settings(settings)
+    candidates = Router(registry, settings).route(_request(allow_fallback=False))
+    assert len(candidates) == 1
+
+
+def test_an_unconfigured_provider_is_reported(config_dir: object) -> None:
+    settings = Settings(
+        _env_file=None,
+        environment="test",
+        config_dir=config_dir,
+        security={"auth_mode": "none"},
+        groq={"api_key": "groq-secret"},
+    )
+    registry = ProviderRegistry.from_settings(settings)
+    with pytest.raises(OpenTranscribeError) as caught:
+        Router(registry, settings).route(_request(provider="microsoft"))
+    assert caught.value.response.code == ErrorCode.PROVIDER_UNAVAILABLE
+    assert caught.value.response.provider == "microsoft"
+
+
+def test_a_missing_routing_config_falls_back_to_defaults(tmp_path: Path) -> None:
+    assert load_routing(tmp_path / "absent.yaml") == {}
