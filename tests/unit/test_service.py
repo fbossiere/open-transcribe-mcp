@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
@@ -256,3 +257,116 @@ async def test_a_source_over_the_model_limit_is_not_retried_elsewhere(
     assert caught.value.response.code == ErrorCode.SOURCE_TOO_LARGE
     assert caught.value.response.provider == "groq"
     groq.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_a_duration_hint_over_the_limit_is_refused_before_any_provider_call(
+    settings: Settings,
+) -> None:
+    limited = settings.model_copy(update={"max_audio_duration_seconds": 60})
+    app = service(limited)
+    provider = AsyncMock()
+    app.registry.get_provider("microsoft").transcribe = provider  # type: ignore[method-assign]
+
+    with pytest.raises(OpenTranscribeError) as caught:
+        await app.transcribe(
+            TranscribeAudioRequest.model_validate(
+                {
+                    "source": {"url": "https://media.example/audio.mp3"},
+                    "duration_seconds_hint": 120,
+                }
+            )
+        )
+
+    assert caught.value.response.code == ErrorCode.SOURCE_DURATION_EXCEEDED
+    provider.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_audio_longer_than_the_limit_is_refused_after_transcription(
+    settings: Settings,
+) -> None:
+    """The hint is optional, so the provider-reported duration is the enforced one."""
+    limited = settings.model_copy(update={"max_audio_duration_seconds": 60})
+    app = service(limited)
+    transcript = canonical()
+    transcript.source_duration_ms = 120_000
+    app.registry.get_provider("microsoft").transcribe = AsyncMock(  # type: ignore[method-assign]
+        return_value=transcript
+    )
+
+    with pytest.raises(OpenTranscribeError) as caught:
+        await app.transcribe(
+            TranscribeAudioRequest.model_validate(
+                {"source": {"url": "https://media.example/audio.mp3"}}
+            )
+        )
+
+    assert caught.value.response.code == ErrorCode.SOURCE_DURATION_EXCEEDED
+
+
+@pytest.mark.asyncio
+async def test_a_cost_ceiling_fails_closed_without_pricing_metadata(
+    settings: Settings, tmp_path: Path
+) -> None:
+    """An unpriced model must not slip past an operator's configured cost ceiling."""
+    unpriced = settings.model_copy(update={"config_dir": tmp_path, "max_request_cost_usd": 10.0})
+    app = service(unpriced)
+    provider = AsyncMock()
+    app.registry.get_provider("microsoft").transcribe = provider  # type: ignore[method-assign]
+    assert app.registry.get_model("microsoft", "MAI-Transcribe-2").pricing is None
+
+    with pytest.raises(OpenTranscribeError) as caught:
+        await app.transcribe(
+            TranscribeAudioRequest.model_validate(
+                {
+                    "source": {"url": "https://media.example/audio.mp3"},
+                    "duration_seconds_hint": 60,
+                }
+            )
+        )
+
+    assert caught.value.response.code == ErrorCode.COST_LIMIT_EXCEEDED
+    assert "Pricing metadata" in caught.value.response.message
+    provider.assert_not_awaited()
+
+
+def test_a_duration_hint_without_a_cost_ceiling_is_allowed(settings: Settings) -> None:
+    app = service(settings)
+    assert settings.max_request_cost_usd is None
+    app._enforce_preflight_limits(
+        TranscribeAudioRequest.model_validate(
+            {"source": {"url": "https://media.example/audio.mp3"}, "duration_seconds_hint": 60}
+        ),
+        app.registry.get_model("microsoft", "MAI-Transcribe-2"),
+    )
+
+
+def test_an_estimate_under_the_ceiling_is_allowed(settings: Settings) -> None:
+    generous = settings.model_copy(update={"max_request_cost_usd": 100.0})
+    app = service(generous)
+    app._enforce_preflight_limits(
+        TranscribeAudioRequest.model_validate(
+            {"source": {"url": "https://media.example/audio.mp3"}, "duration_seconds_hint": 60}
+        ),
+        app.registry.get_model("microsoft", "MAI-Transcribe-2"),
+    )
+
+
+@pytest.mark.parametrize("duration_seconds", [0, -1, -0.5, 21_601, 1_000_000])
+def test_a_cost_estimate_outside_the_configured_limits_is_refused(
+    settings: Settings, duration_seconds: float
+) -> None:
+    app = service(settings)
+    with pytest.raises(OpenTranscribeError) as caught:
+        app.estimate_cost(duration_seconds, "microsoft", "MAI-Transcribe-2")
+    assert caught.value.response.code == ErrorCode.SOURCE_DURATION_EXCEEDED
+
+
+@pytest.mark.parametrize("duration_seconds", [0.5, 1, 3600, 21_600])
+def test_a_cost_estimate_inside_the_configured_limits_is_returned(
+    settings: Settings, duration_seconds: float
+) -> None:
+    estimate = service(settings).estimate_cost(duration_seconds, "microsoft", "MAI-Transcribe-2")
+    assert estimate.estimated_cost_usd is not None
+    assert estimate.estimated_cost_usd > 0
