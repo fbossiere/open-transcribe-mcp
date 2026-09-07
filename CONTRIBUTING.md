@@ -18,6 +18,14 @@ uv run mypy src
 
 Python 3.12 is required. Never commit `.env`, provider credentials, signed URLs, personal recordings, or real transcript content.
 
+### Dev container
+
+A [dev container](.devcontainer/devcontainer.json) reproduces the CI toolchain: pinned `uv`, Python 3.12, Docker, Terraform, the GitHub CLI, and the `ffmpeg`/`espeak-ng` pair that `scripts/generate_test_fixture.sh` needs. Open the repository in a supporting editor and reopen in the container, or run `devcontainer up --workspace-folder .`.
+
+The container creates its virtual environment at `/home/vscode/.venv` rather than `./.venv`, so a host environment in the working tree is never reused, and locked dependencies are synced on create. No `.env` is generated: settings load `.env` from the working directory, so copy `.env.example` yourself when you need to run the server. Trivy is not preinstalled — run `scripts/install-trivy.sh ~/.local/bin` when you need the security job locally.
+
+Git pushes use the editor's forwarded credentials. The GitHub CLI is installed but authenticates separately: a `GH_TOKEN` exported on the host is passed through, otherwise run `gh auth login` once inside the container. Neither is needed to publish a release, which runs in GitHub Actions over OIDC.
+
 ## Contribution workflow
 
 1. Fork the repository and create a focused branch from `main`.
