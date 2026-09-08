@@ -47,7 +47,7 @@ matching `mcp-name` marker in `README.md`.
    uv run pip-audit
    uv build
    uv run python scripts/check_distribution.py
-   uv run python scripts/check_release_metadata.py --tag v1.0.0
+   uv run python scripts/check_release_metadata.py --tag v1.1.0
    ```
 
 4. Merge the release preparation pull request.
