@@ -10,7 +10,7 @@ RUN rm -f /etc/apt/sources.list.d/yarn.list \
     && rm -rf /var/lib/apt/lists/*
 
 # Same pinned uv as the runtime image, so lockfile resolution matches CI.
-COPY --from=ghcr.io/astral-sh/uv:0.8.22@sha256:9874eb7afe5ca16c363fe80b294fe700e460df29a55532bbfea234a0f12eddb1 \
+COPY --from=ghcr.io/astral-sh/uv:0.12.10@sha256:2bb3ebca0a796a155094a27773d290c4b074572e6107f171d88d086682fd2500 \
      /uv /uvx /usr/local/bin/
 
 # Default to the unprivileged user that devcontainer.json also selects as remoteUser.
