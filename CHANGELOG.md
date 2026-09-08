@@ -4,6 +4,23 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-07
+
+### Added
+
+- A dev container reproducing the CI toolchain: pinned `uv`, Python 3.12, Docker, Terraform, the GitHub CLI, and the fixture-generation audio tools.
+- Provider `Retry-After` headers are now honoured between retries, in both the delay-seconds and HTTP-date forms, bounded so a distant or hostile hint cannot hold a request open.
+
+### Fixed
+
+- A malformed source URL is now rejected as `SOURCE_URL_REJECTED`. An empty, overlong, or unmappable IDNA label escaped as a raw `UnicodeError`, and a malformed bracketed authority or a netloc failing NFKC normalization escaped as a raw `ValueError`, so a bad URL was reported as an internal error rather than a rejected source. A hostname that normalizes to nothing is rejected rather than accepted as empty.
+- URL redaction and source log fields no longer raise on a URL they cannot parse, which a hostile redirect target could previously trigger inside an error path; an unparseable URL degrades to a placeholder instead of being echoed.
+- Provider rate limits are now reported as `RATE_LIMITED`. The code was documented in the error model but unreachable, because a `429` was classified as a generic transient failure and surfaced as `PROVIDER_UNAVAILABLE` once retries were exhausted.
+
+### Security
+
+- `.gitignore` and `.dockerignore` now cover every `.env.*` variant rather than `.env` alone, so a local credential file such as `.env.local` can no longer be staged by a bulk `git add` or reach a build context. `.env.example` stays tracked.
+
 ## [1.0.0] - 2026-09-07
 
 ### Added
@@ -58,7 +75,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Docker, Scaleway, provider, privacy, security, Plaud, and ChatGPT/Drive documentation;
 - unit, provider contract, security, and MCP transport tests plus release CI.
 
-[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v1.1.0
 [1.0.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v1.0.0
 [0.1.1]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v0.1.1
 [0.1.0]: https://github.com/fbossiere/open-transcribe-mcp/tree/v0.1.0

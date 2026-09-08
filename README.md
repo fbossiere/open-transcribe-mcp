@@ -111,17 +111,17 @@ Provider choice does not alter the response contract. Set `provider` and `model`
 ## Docker
 
 ```bash
-docker build -t open-transcribe-mcp:1.0.0 .
+docker build -t open-transcribe-mcp:1.1.0 .
 docker run --rm -p 8000:8000 \
   -e OT_ENVIRONMENT=prod \
   -e OT_MICROSOFT__ENDPOINT="https://YOUR-RESOURCE.cognitiveservices.azure.com" \
   -e OT_MICROSOFT__API_KEY="YOUR-KEY" \
   -e OT_SECURITY__AUTH_MODE=bearer \
   -e OT_SECURITY__BEARER_TOKEN="YOUR-RANDOM-TOKEN" \
-  open-transcribe-mcp:1.0.0
+  open-transcribe-mcp:1.1.0
 ```
 
-The published image is also available as `ghcr.io/fbossiere/open-transcribe-mcp:1.0.0`.
+The published image is also available as `ghcr.io/fbossiere/open-transcribe-mcp:1.1.0`.
 
 ## Configuration
 

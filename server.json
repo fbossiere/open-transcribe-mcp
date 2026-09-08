@@ -8,14 +8,14 @@
     "source": "github",
     "id": "1358914807"
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "websiteUrl": "https://github.com/fbossiere/open-transcribe-mcp",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "open-transcribe-mcp",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "runtimeHint": "uvx",
       "transport": {
         "type": "streamable-http",
