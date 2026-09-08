@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM mcr.microsoft.com/devcontainers/python:1-3.12-bookworm@sha256:7876580dc67fd460fd962f004cbeb480027e9bbc0657096f1087db11f9eaff39
+FROM mcr.microsoft.com/devcontainers/python:3.12-bookworm@sha256:38d2d8b2cf205f14440331eef163c8a2b80b21ed56ff661406382d6c84e95649
 
 # The base image ships a yarn apt source whose signing key no longer verifies and
 # this project has no Node toolchain, so drop it before touching apt.
