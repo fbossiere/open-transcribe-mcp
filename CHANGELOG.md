@@ -4,6 +4,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-07
+
 ### Added
 
 - A dev container reproducing the CI toolchain: pinned `uv`, Python 3.12, Docker, Terraform, the GitHub CLI, and the fixture-generation audio tools.
@@ -73,7 +75,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Docker, Scaleway, provider, privacy, security, Plaud, and ChatGPT/Drive documentation;
 - unit, provider contract, security, and MCP transport tests plus release CI.
 
-[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v1.1.0
 [1.0.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v1.0.0
 [0.1.1]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v0.1.1
 [0.1.0]: https://github.com/fbossiere/open-transcribe-mcp/tree/v0.1.0
