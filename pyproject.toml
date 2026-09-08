@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "open-transcribe-mcp"
-version = "1.0.0"
+version = "1.1.0"
 description = "Provider-independent speech-to-text over MCP."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -73,7 +73,7 @@ branch = true
 source = ["open_transcribe"]
 
 [tool.coverage.report]
-fail_under = 85
+fail_under = 91
 show_missing = true
 
 [tool.ruff]

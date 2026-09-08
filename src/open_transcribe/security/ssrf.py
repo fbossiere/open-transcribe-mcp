@@ -53,22 +53,40 @@ async def validate_source_url(
     allow_private_urls: bool = False,
     allowed_hosts: list[str] | None = None,
 ) -> ValidatedUrl:
-    parts = urlsplit(url)
+    try:
+        parts = urlsplit(url)
+        username, password, hostname = parts.username, parts.password, parts.hostname
+    except ValueError as exc:
+        # urlsplit rejects a malformed bracketed authority and any netloc that fails
+        # NFKC normalization; both must read as a source rejection, not a server fault.
+        raise OpenTranscribeError(
+            ErrorCode.SOURCE_URL_REJECTED, "The audio source URL could not be parsed."
+        ) from exc
     if parts.scheme not in {"http", "https"}:
         raise OpenTranscribeError(
             ErrorCode.SOURCE_URL_REJECTED, "Only HTTP(S) sources are allowed."
         )
     if require_https and parts.scheme != "https":
         raise OpenTranscribeError(ErrorCode.SOURCE_URL_REJECTED, "The audio source must use HTTPS.")
-    if parts.username or parts.password:
+    if username or password:
         raise OpenTranscribeError(
             ErrorCode.SOURCE_URL_REJECTED, "User-info credentials are not allowed in source URLs."
         )
-    if not parts.hostname:
+    if not hostname:
         raise OpenTranscribeError(
             ErrorCode.SOURCE_URL_REJECTED, "The audio source has no hostname."
         )
-    host = parts.hostname.rstrip(".").lower().encode("idna").decode("ascii")
+    try:
+        host = hostname.rstrip(".").lower().encode("idna").decode("ascii")
+    except UnicodeError as exc:
+        # An empty, overlong, or unmappable IDNA label must not escape as a server fault.
+        raise OpenTranscribeError(
+            ErrorCode.SOURCE_URL_REJECTED, "The audio source hostname is not a valid domain name."
+        ) from exc
+    if not host:
+        raise OpenTranscribeError(
+            ErrorCode.SOURCE_URL_REJECTED, "The audio source has no hostname."
+        )
     if host == "localhost" or host.endswith(".localhost"):
         raise OpenTranscribeError(
             ErrorCode.SOURCE_URL_REJECTED, "Localhost sources are prohibited."
