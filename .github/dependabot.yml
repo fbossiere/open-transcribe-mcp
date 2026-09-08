@@ -38,6 +38,10 @@ updates:
     labels:
       - dependencies
       - docker
+    ignore:
+      - dependency-name: python
+        versions:
+          - ">= 3.13"
 
   - package-ecosystem: docker
     directory: /.devcontainer

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "open-transcribe-mcp"
-version = "1.0.0"
+version = "1.1.0"
 description = "Provider-independent speech-to-text over MCP."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -23,7 +23,7 @@ dependencies = [
   "pydantic>=2,<3",
   "pydantic-settings>=2,<3",
   "pyyaml>=6,<7",
-  "structlog>=25,<26",
+  "structlog>=25,<27",
   "tenacity>=9,<10",
   "uvicorn[standard]>=0.35,<1",
 ]
@@ -33,11 +33,11 @@ s3 = ["boto3>=1.40,<2"]
 dev = [
   "coverage[toml]>=7.10,<8",
   "mkdocs>=1.6,<2",
-  "mypy>=1.17,<2",
+  "mypy>=1.17,<3",
   "pip-audit>=2.9,<3",
   "pytest>=9.0.3,<10",
   "pytest-asyncio>=1.1,<2",
-  "pytest-cov>=6.2,<7",
+  "pytest-cov>=6.2,<8",
   "respx>=0.22,<1",
   "ruff>=0.12,<1",
   "types-pyyaml>=6.0.12,<7",
