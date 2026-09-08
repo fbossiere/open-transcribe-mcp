@@ -4,6 +4,10 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Added
+
+- A French, command-by-command Terraform runbook for deploying OpenTranscribe MCP to the FBO Holding Scaleway project.
+
 ## [1.1.0] - 2026-09-07
 
 ### Added

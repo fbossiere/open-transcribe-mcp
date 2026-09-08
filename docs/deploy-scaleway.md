@@ -6,6 +6,9 @@ OpenTranscribe is a containerized ASGI service exposing MCP Streamable HTTP. Ser
 
 The Terraform root module is in [`infra/scaleway`](https://github.com/fbossiere/open-transcribe-mcp/tree/main/infra/scaleway). It provisions a private Container Registry namespace, a Serverless Containers namespace, the application container, and optional TTL-bound Object Storage.
 
+For a command-by-command worked deployment, see the
+[French Terraform runbook for the FBO Holding project](tutorials/deploy-scaleway-terraform.md).
+
 ## Reference sizing
 
 The defaults intentionally start small:
