@@ -342,9 +342,17 @@ Add these to the end of the command when you need them:
 |---|---|
 | Tell it the language, if detection struggles | `--language fr` |
 | Tell it how many people are speaking | `--speakers 4` |
-| One block of text, no speaker labels | `--no-diarization` |
+| Timecoded text with no speaker labels | `--no-diarization` |
 | Save the transcript somewhere specific | `--out ~/Documents/meeting.txt` |
 | Prefer the cheapest provider over the best | `--policy cost` |
+| Use a provider that cannot tell speakers apart | `--no-diarization` as well |
+
+!!! note "Why `--policy cost` may not change anything"
+    Asking for speaker labels rules out any provider that cannot produce them, so a
+    request for a meeting transcript will never route to Groq however cheap it is.
+    Add `--no-diarization` and the cheaper provider becomes available, at the price of
+    losing the labels. This is deliberate: OpenTranscribe would rather tell you it
+    cannot do what you asked than quietly hand back something different.
 
 For example, a four-person French meeting:
 
@@ -379,6 +387,7 @@ things:
 | `The server rejected the request` | The token does not match | The value after `--token` must match `OT_SECURITY__BEARER_TOKEN` in `.env` exactly |
 | `PROVIDER_AUTHENTICATION_FAILED` | The provider rejected your key | The key is wrong, revoked, or the account has no credit. Create a fresh key |
 | `PROVIDER_UNAVAILABLE` | The provider could not be reached | Check your internet connection and the provider's status page, then run the command again |
+| `UNSUPPORTED_CAPABILITY` | No configured provider can do what you asked | Usually speaker labels on a provider that has none. Add `--no-diarization`, or configure a provider that supports them |
 | `SOURCE_URL_REJECTED` | The two local-access lines are missing | Re-check the last two lines of Step 5, then restart the service |
 | `INVALID_AUDIO` | The file is not audio, or it is damaged | Play it first. Re-export it from Plaud |
 | `SOURCE_TOO_LARGE` | Longer than the built-in limit | Add `OT_MAX_AUDIO_SIZE_MB=1000` to `.env` and restart, or split the recording |
@@ -410,8 +419,10 @@ Worth knowing, and worth being able to explain to the people you record:
 ## Where to go next
 
 - **Change provider.** Edit `OT_DEFAULT_PROVIDER` in `.env` after adding that
-  provider's key, and restart. Your commands do not change — that is the point of
-  OpenTranscribe.
+  provider's key, and restart. Your commands stay the same — that is the point of
+  OpenTranscribe. The one exception is a provider that cannot tell speakers apart:
+  on Groq the command needs `--no-diarization`, and without it you get
+  `UNSUPPORTED_CAPABILITY` rather than a transcript missing the labels you asked for.
 - **Connect it to an AI assistant.** OpenTranscribe speaks MCP, so an assistant
   that supports MCP can call it directly and work with your transcripts in
   conversation. See the project README.

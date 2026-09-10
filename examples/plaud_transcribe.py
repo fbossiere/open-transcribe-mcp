@@ -136,9 +136,11 @@ def run(args: argparse.Namespace) -> int:
         "source": {"type": "url", "url": url},
         "provider": args.provider,
         "routing_policy": args.policy,
+        # Stated capabilities exclude models that cannot honour them. Speaker labels and
+        # segment timestamps are what this script renders, so it asks for them; the
+        # transcript style is left unset so a verbatim-only model stays reachable.
         "diarization": not args.no_diarization,
         "timestamps": "segment",
-        "transcript_style": "clean",
         "source_delivery": "proxy",
         "result_mode": "inline",
     }
