@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from fastmcp import Client
+from mcp.shared.exceptions import MCPError
 
 CHUNK_BYTES = 64 * 1024
 
@@ -103,6 +104,21 @@ def render(result: dict[str, Any]) -> str:
     return "\n".join(lines).strip()
 
 
+def explain(exc: BaseException, server: str) -> str:
+    """Turn a client-side failure into one line a non-developer can act on."""
+    if isinstance(exc, MCPError):
+        return (
+            "The server rejected the request. The usual cause is that the value passed to "
+            "--token does not match OT_SECURITY__BEARER_TOKEN in your .env file."
+        )
+    if isinstance(exc, OSError) or "connect" in str(exc).lower():
+        return (
+            f"Could not reach OpenTranscribe at {server}. Check that the Terminal window "
+            "running 'uv run open-transcribe-mcp' is still open and reports 'Uvicorn running'."
+        )
+    return f"{type(exc).__name__}: {exc}"
+
+
 async def call_tool(server: str, token: str, request: dict[str, Any]) -> Any:
     async with Client(server, auth=token) as client:
         response = await client.call_tool("transcribe_audio", {"request": request})
@@ -134,6 +150,9 @@ def run(args: argparse.Namespace) -> int:
     try:
         print(f"Transcribing {audio.name} ({audio.stat().st_size / 1_000_000:.1f} MB)…")
         result = asyncio.run(call_tool(args.server, args.token, request))
+    except Exception as exc:
+        print(f"Failed: {explain(exc, args.server)}")
+        return 2
     finally:
         httpd.shutdown()
         httpd.server_close()

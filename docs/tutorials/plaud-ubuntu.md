@@ -376,11 +376,13 @@ things:
 |---|---|---|
 | `command not found: uv` | The Terminal has not noticed the new tool | Close the window, open a new one |
 | `configured_providers":[]` | Your key was not read | Re-check Step 5 for typos and stray spaces |
+| `The server rejected the request` | The token does not match | The value after `--token` must match `OT_SECURITY__BEARER_TOKEN` in `.env` exactly |
 | `PROVIDER_AUTHENTICATION_FAILED` | The provider rejected your key | The key is wrong, revoked, or the account has no credit. Create a fresh key |
+| `PROVIDER_UNAVAILABLE` | The provider could not be reached | Check your internet connection and the provider's status page, then run the command again |
 | `SOURCE_URL_REJECTED` | The two local-access lines are missing | Re-check the last two lines of Step 5, then restart the service |
 | `INVALID_AUDIO` | The file is not audio, or it is damaged | Play it first. Re-export it from Plaud |
 | `SOURCE_TOO_LARGE` | Longer than the built-in limit | Add `OT_MAX_AUDIO_SIZE_MB=1000` to `.env` and restart, or split the recording |
-| `Connection refused` | The service is not running | Go back to the first window; it should say `Uvicorn running` |
+| `Could not reach OpenTranscribe at…` | The service is not running | Go back to the first window; it should say `Uvicorn running` |
 | It hangs for a long time | Long recordings simply take a while | A one-hour recording can take several minutes. Wait |
 
 To restart the service after changing `.env`: click into the first window, press
