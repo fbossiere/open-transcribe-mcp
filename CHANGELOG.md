@@ -4,6 +4,18 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Added
+
+- An opt-in end-to-end suite, `tests/e2e`, that transcribes an audio file through a deployed instance and verifies the returned transcript. It takes the deployment URL in any of its Terraform output forms, negotiates the request against the models the deployment reports as configured, reads stored results back through the chunk tool and deletes them, and keeps transcript text out of its output. It skips unless a deployment URL is given, so an ordinary test run is unchanged.
+- The Scaleway deployment guide now states the IAM permission sets the Terraform key needs, with their project or organization scope, the console and `scw` procedures that create the application, policy, and key, and how the credentials reach Terraform and an S3 state backend. It also records that a bucket policy naming only the result-store application locks a non-owner deployment key out of the bucket.
+- The dev container's TFLint and Terragrunt are documented: how TFLint complements the CI Terraform job, and an optional Terragrunt wrapper carrying the remote state backend the module does not hardcode.
+
+### Changed
+
+- `diarization`, `timestamps`, and `transcript_style` are now unset by default instead of requesting diarization, segment timestamps, and clean output. An unset capability is bound to what the selected model supports and reported in the response metadata, so a request naming only its audio source now succeeds on a deployment whose only provider is Groq, which previously answered `UNSUPPORTED_CAPABILITY` to the tool's own defaults. A stated capability still excludes every model that cannot honour it. The quickstart example and `examples/transcribe.py` no longer state the three capabilities, so they run against any single configured provider.
+- `strict_capabilities=false` now downgrades under `provider=auto`. It only relaxed an explicitly named provider, so the flag was inert on the request shape that needs it most. The dropped capability is named in a `requested_capability_not_supported:*` warning, and the provider is asked only for what its model does, as it already was for a named provider.
+- The dev container installs TFLint 0.64.0 and Terragrunt 1.1.4 alongside the pinned Terraform.
+
 ## [1.1.0] - 2026-09-07
 
 ### Added

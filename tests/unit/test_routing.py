@@ -4,6 +4,7 @@ import pytest
 
 from open_transcribe.domain.audio import (
     ResolvedAudioSource,
+    ResolvedTranscribeRequest,
     TimestampMode,
     TranscribeAudioRequest,
     TranscriptStyle,
@@ -39,7 +40,9 @@ def test_cost_routing_selects_compatible_cheapest(settings: Settings) -> None:
 
 def test_strict_capability_rejects_groq_diarization(settings: Settings) -> None:
     registry = ProviderRegistry.from_settings(settings)
-    request = _request(provider="groq", model="whisper-large-v3", transcript_style="verbatim")
+    request = _request(
+        provider="groq", model="whisper-large-v3", diarization=True, transcript_style="verbatim"
+    )
     with pytest.raises(OpenTranscribeError) as caught:
         Router(registry, settings).route(request)
     assert caught.value.response.code == ErrorCode.UNSUPPORTED_CAPABILITY
@@ -51,6 +54,7 @@ def test_non_strict_capability_emits_warning(settings: Settings) -> None:
     request = _request(
         provider="groq",
         model="whisper-large-v3",
+        diarization=True,
         transcript_style="verbatim",
         strict_capabilities=False,
     )
@@ -69,6 +73,12 @@ def test_no_configured_provider_is_an_error(config_dir: object) -> None:
     with pytest.raises(OpenTranscribeError) as caught:
         Router(registry, settings).route(_request())
     assert caught.value.response.code == ErrorCode.PROVIDER_UNAVAILABLE
+
+
+GROQ_LIKE: dict[str, object] = {
+    "supports_diarization": False,
+    "transcript_styles": {TranscriptStyle.VERBATIM},
+}
 
 
 def descriptor(**overrides: object) -> ModelDescriptor:
@@ -104,7 +114,7 @@ class ProbeProvider(TranscriptionProvider):
 
     async def transcribe(
         self,
-        request: TranscribeAudioRequest,
+        request: ResolvedTranscribeRequest,
         source: ResolvedAudioSource,
         model: ModelDescriptor,
     ) -> CanonicalTranscript:
@@ -123,9 +133,13 @@ def probe_router(settings: Settings, **overrides: object) -> Router:
     ("capability", "request_overrides", "unsatisfied"),
     [
         ({"lifecycle": ModelLifecycle.PREVIEW}, {"allow_preview_models": False}, "preview_model"),
-        ({"supports_diarization": False}, {}, "diarization"),
+        ({"supports_diarization": False}, {"diarization": True}, "diarization"),
         ({"timestamp_modes": {TimestampMode.NONE}}, {"timestamps": "word"}, "timestamps:word"),
-        ({"transcript_styles": {TranscriptStyle.VERBATIM}}, {}, "transcript_style:clean"),
+        (
+            {"transcript_styles": {TranscriptStyle.VERBATIM}},
+            {"transcript_style": "clean"},
+            "transcript_style:clean",
+        ),
         ({"supports_language_detection": False}, {}, "language_detection"),
         ({"supports_phrase_hints": False}, {"phrase_hints": ["acme"]}, "phrase_hints"),
         ({"max_audio_seconds": 60}, {"duration_seconds_hint": 120}, "max_audio_seconds"),
@@ -147,6 +161,47 @@ def test_every_capability_dimension_is_negotiated(
 def test_a_fully_capable_model_satisfies_the_default_request(settings: Settings) -> None:
     """Guard the negotiation tests above: the baseline descriptor must route cleanly."""
     assert probe_router(settings).route(_request())[0].model.key == "probe/probe-1"
+
+
+def test_unstated_capabilities_bind_to_the_selected_model(settings: Settings) -> None:
+    """A bare request must reach a model that supports none of the schema's former defaults."""
+    registry = ProviderRegistry([ProbeProvider([descriptor(**GROQ_LIKE)])])
+    candidate = Router(registry, settings, routing_config={}).route(_request())[0]
+    assert candidate.warnings == ()
+    assert candidate.request.diarization is False
+    assert candidate.request.transcript_style == TranscriptStyle.VERBATIM
+    assert candidate.request.timestamps == TimestampMode.SEGMENT
+
+
+def test_unstated_capabilities_are_kept_when_the_model_supports_them(settings: Settings) -> None:
+    candidate = probe_router(settings).route(_request())[0]
+    assert candidate.request.diarization is True
+    assert candidate.request.transcript_style == TranscriptStyle.CLEAN
+    assert candidate.request.timestamps == TimestampMode.SEGMENT
+
+
+def test_a_stated_capability_still_excludes_a_model_that_lacks_it(settings: Settings) -> None:
+    registry = ProviderRegistry([ProbeProvider([descriptor(**GROQ_LIKE)])])
+    with pytest.raises(OpenTranscribeError) as caught:
+        Router(registry, settings, routing_config={}).route(_request(diarization=True))
+    assert caught.value.response.details["unsatisfied"] == ["diarization"]
+
+
+def test_non_strict_capabilities_downgrade_without_an_explicit_provider(
+    settings: Settings,
+) -> None:
+    """strict_capabilities=false was inert under provider=auto, which made the flag a no-op."""
+    registry = ProviderRegistry([ProbeProvider([descriptor(**GROQ_LIKE)])])
+    candidate = Router(registry, settings, routing_config={}).route(
+        _request(diarization=True, transcript_style="clean", strict_capabilities=False)
+    )[0]
+    assert set(candidate.warnings) == {
+        "requested_capability_not_supported:diarization",
+        "requested_capability_not_supported:transcript_style:clean",
+    }
+    # The provider is asked only for what its model does, so the metadata stays truthful.
+    assert candidate.request.diarization is False
+    assert candidate.request.transcript_style == TranscriptStyle.VERBATIM
 
 
 def test_fixed_routing_returns_only_the_requested_model(settings: Settings) -> None:

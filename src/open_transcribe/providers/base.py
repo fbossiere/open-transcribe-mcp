@@ -16,7 +16,7 @@ from tenacity import (
     wait_random_exponential,
 )
 
-from open_transcribe.domain.audio import ResolvedAudioSource, TranscribeAudioRequest
+from open_transcribe.domain.audio import ResolvedAudioSource, ResolvedTranscribeRequest
 from open_transcribe.domain.capabilities import ModelDescriptor
 from open_transcribe.domain.errors import ErrorCode, ProviderError
 from open_transcribe.domain.transcript import CanonicalTranscript, CostEstimate
@@ -97,7 +97,7 @@ class TranscriptionProvider(ABC):
     @abstractmethod
     async def transcribe(
         self,
-        request: TranscribeAudioRequest,
+        request: ResolvedTranscribeRequest,
         source: ResolvedAudioSource,
         model: ModelDescriptor,
     ) -> CanonicalTranscript: ...

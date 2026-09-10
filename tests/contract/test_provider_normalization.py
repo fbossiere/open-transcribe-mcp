@@ -1,4 +1,4 @@
-from open_transcribe.domain.audio import TranscribeAudioRequest
+from open_transcribe.domain.audio import ResolvedTranscribeRequest
 from open_transcribe.providers.elevenlabs.adapter import ElevenLabsProvider
 from open_transcribe.providers.groq.adapter import GroqProvider
 from open_transcribe.providers.microsoft.adapter import MicrosoftProvider
@@ -6,14 +6,15 @@ from open_transcribe.providers.registry import ProviderRegistry
 from open_transcribe.settings import Settings
 
 
-def request(**overrides: object) -> TranscribeAudioRequest:
+def request(**overrides: object) -> ResolvedTranscribeRequest:
     data: dict[str, object] = {
         "source": {"url": "https://example.com/audio.mp3"},
+        "diarization": True,
         "transcript_style": "verbatim",
         "timestamps": "word",
     }
     data.update(overrides)
-    return TranscribeAudioRequest.model_validate(data)
+    return ResolvedTranscribeRequest.model_validate(data)
 
 
 def providers(settings: Settings) -> tuple[MicrosoftProvider, ElevenLabsProvider, GroqProvider]:

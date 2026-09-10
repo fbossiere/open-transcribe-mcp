@@ -6,9 +6,9 @@ import httpx
 
 from open_transcribe.domain.audio import (
     ResolvedAudioSource,
+    ResolvedTranscribeRequest,
     SourceDelivery,
     TimestampMode,
-    TranscribeAudioRequest,
 )
 from open_transcribe.domain.capabilities import ModelDescriptor, ModelLifecycle, PricingDescriptor
 from open_transcribe.domain.transcript import (
@@ -72,7 +72,7 @@ class GroqProvider(HttpProvider):
 
     async def transcribe(
         self,
-        request: TranscribeAudioRequest,
+        request: ResolvedTranscribeRequest,
         source: ResolvedAudioSource,
         model: ModelDescriptor,
     ) -> CanonicalTranscript:
@@ -142,7 +142,7 @@ class GroqProvider(HttpProvider):
         self,
         data: dict[str, Any],
         *,
-        request: TranscribeAudioRequest,
+        request: ResolvedTranscribeRequest,
         model: ModelDescriptor,
         latency_ms: int,
         request_id: str | None,

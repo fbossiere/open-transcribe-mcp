@@ -622,9 +622,9 @@ class TranscribeAudioRequest(BaseModel):
 
     language: str | None = None
 
-    diarization: bool = True
-    timestamps: TimestampMode = TimestampMode.SEGMENT
-    transcript_style: TranscriptStyle = TranscriptStyle.CLEAN
+    diarization: bool | None = None
+    timestamps: TimestampMode | None = None
+    transcript_style: TranscriptStyle | None = None
 
     phrase_hints: list[str] = Field(default_factory=list)
     speaker_count_hint: int | None = None
@@ -971,7 +971,11 @@ timestamps = word
 transcript_style = clean
 ```
 
-If a model does not support one of those features:
+A capability left unset is not requested. The router binds it to what the selected model
+supports, and the response metadata reports what was applied, so a request naming only its audio
+source reaches any configured model instead of demanding capabilities the caller never asked for.
+
+If a model does not support a requested feature:
 
 ### With `strict_capabilities=true`
 
@@ -984,6 +988,12 @@ The router may choose another compatible model.
 ### With explicit provider/model and unsupported capability
 
 Return `UNSUPPORTED_CAPABILITY`.
+
+### With `strict_capabilities=false`
+
+The unsupported capability is dropped, whether or not the provider was named, and the response
+carries a `requested_capability_not_supported:<name>` warning. The provider is asked only for what
+its model does, so the reported metadata stays truthful.
 
 The server must never silently discard a requested capability.
 

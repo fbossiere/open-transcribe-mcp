@@ -66,6 +66,7 @@ markers = [
   "integration_microsoft: live Microsoft integration test",
   "integration_elevenlabs: live ElevenLabs integration test",
   "integration_groq: live Groq integration test",
+  "e2e_deployment: live end-to-end test against a deployed instance",
 ]
 
 [tool.coverage.run]
