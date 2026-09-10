@@ -87,6 +87,9 @@ ignore = ["A002", "TRY003"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101", "S105", "S106"]
+# Command-line entry points report progress on stdout by design.
+"examples/**/*.py" = ["T20"]
+"scripts/**/*.py" = ["T20"]
 
 [tool.mypy]
 python_version = "3.12"

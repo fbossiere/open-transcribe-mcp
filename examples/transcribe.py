@@ -26,7 +26,7 @@ async def run(server_url: str, bearer_token: str, audio_url: str) -> None:
                 }
             },
         )
-        print(json.dumps(result.data, indent=2, ensure_ascii=False))  # noqa: T201
+        print(json.dumps(result.data, indent=2, ensure_ascii=False))
 
 
 def main() -> None:

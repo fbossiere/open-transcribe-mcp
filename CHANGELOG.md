@@ -9,6 +9,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - An opt-in end-to-end suite, `tests/e2e`, that transcribes an audio file through a deployed instance and verifies the returned transcript. It takes the deployment URL in any of its Terraform output forms, negotiates the request against the models the deployment reports as configured, reads stored results back through the chunk tool and deletes them, and keeps transcript text out of its output. It skips unless a deployment URL is given, so an ordinary test run is unchanged.
 - The Scaleway deployment guide now states the IAM permission sets the Terraform key needs, with their project or organization scope, the console and `scw` procedures that create the application, policy, and key, and how the credentials reach Terraform and an S3 state backend. It also records that a bucket policy naming only the result-store application locks a non-owner deployment key out of the bucket.
 - The dev container's TFLint and Terragrunt are documented: how TFLint complements the CI Terraform job, and an optional Terragrunt wrapper carrying the remote state backend the module does not hardcode.
+- A step-by-step tutorial for transcribing a Plaud recorder on Ubuntu, written for readers who do not write code, published on the documentation site and as a PDF. `scripts/build_tutorial_pdf.py` renders the PDF from the same Markdown source.
+- `examples/plaud_transcribe.py`, which transcribes a local audio file by publishing it on a loopback-only server for the duration of one `proxy`-delivery request and writing a readable transcript beside the audio.
 
 ### Changed
 

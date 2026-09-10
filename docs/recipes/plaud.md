@@ -2,6 +2,9 @@
 
 Plaud is an acquisition example, not a core dependency.
 
+This page is the short, technical form. For an end-to-end walkthrough aimed at non-developers,
+see [Transcribe your Plaud recordings on Ubuntu](../tutorials/plaud-ubuntu.md).
+
 1. Use an authorized Plaud export, CLI, connector, or MCP integration to list recordings and obtain an original-audio URL.
 2. Pass that temporary HTTPS URL to `transcribe_audio`.
 3. Consume the canonical result, not Plaud- or provider-specific fields.
