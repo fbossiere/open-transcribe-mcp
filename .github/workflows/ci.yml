@@ -195,7 +195,7 @@ jobs:
             https://apt.releases.hashicorp.com/gpg \
             --output /tmp/hashicorp.asc
           test "$(gpg --show-keys --with-colons /tmp/hashicorp.asc | awk -F: '$1 == "fpr" { print $10; exit }')" \
-            = "798AEC654E5C15428C8E42EEAA16FCBCA621E701"
+            = "D55C0D1AC78A8D8126CB631CFC9CA96ACA026560"
           gpg --dearmor --output /tmp/hashicorp.gpg /tmp/hashicorp.asc
           sudo install -o root -g root -m 0644 /tmp/hashicorp.gpg \
             /usr/share/keyrings/hashicorp-archive-keyring.gpg
