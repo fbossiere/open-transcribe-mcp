@@ -16,6 +16,8 @@ uv run ruff check .
 uv run mypy src
 ```
 
+`tests/e2e` holds an opt-in suite that transcribes an audio file through a deployed instance; it skips unless `--deployment-url` or `OT_E2E_DEPLOYMENT_URL` is given, and [`docs/deploy-scaleway.md`](docs/deploy-scaleway.md) documents its options.
+
 Python 3.12 is required. Never commit `.env`, provider credentials, signed URLs, personal recordings, or real transcript content.
 
 ### Dev container

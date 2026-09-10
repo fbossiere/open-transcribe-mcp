@@ -309,4 +309,17 @@ After deployment:
 5. if S3 is enabled, retrieve and delete a stored transcript and confirm no object survives the lifecycle window;
 6. review Serverless Container logs to confirm transcript text, signed URL queries, phrase hints, and credentials are absent.
 
+The repository automates checks 1 to 5 as an opt-in end-to-end suite. It skips itself unless a deployment URL is supplied, and it calls a real provider, so it costs money and never runs in CI:
+
+```bash
+cd infra/scaleway
+export OT_E2E_BEARER_TOKEN="..."   # the deployment's OT_SECURITY__BEARER_TOKEN
+uv run --directory ../.. pytest tests/e2e \
+  --deployment-url "$(terraform output -raw mcp_endpoint)"
+```
+
+The URL is accepted in its base, `/mcp`, `/healthz`, or `/readyz` form, so any of the module's endpoint outputs works. By default the suite transcribes the repository's synthetic bilingual fixture, served from `raw.githubusercontent.com`, and compares the result to `tests/fixtures/reference-transcript.txt`. It asks the deployment which models are configured and requests only capabilities the selected model reports, so it works against any single configured provider; a Whisper deployment transcribes one language of that fixture and drops the other, which is why the comparison scores the best-matching speaker turn rather than the whole reference.
+
+Point it at your own recording with `--audio-url` and `--expected-transcript` (a file path or literal text), pin the model with `--transcribe-provider` and `--transcribe-model`, and adjust `--min-word-coverage` (default `0.8`) and `--e2e-timeout` (default 600 seconds). Every option also reads an `OT_E2E_*` environment variable; prefer the variable for the token so it stays out of the shell history and process list. Transcript text is never printed, on success or on failure — only the reference words the deployment failed to return.
+
 Add platform egress restrictions where available. Application SSRF checks complement, but do not replace, network-level blocking of metadata and private destinations.
