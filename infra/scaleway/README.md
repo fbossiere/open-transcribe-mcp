@@ -10,6 +10,10 @@ This root module deploys OpenTranscribe MCP on Scaleway Serverless Containers. I
 The registry must contain the selected image before the final apply. See
 [`../../docs/deploy-scaleway.md`](../../docs/deploy-scaleway.md) for the bootstrap and deployment sequence.
 
+## Deployment credentials
+
+Terraform authenticates as a Scaleway IAM application through `SCW_ACCESS_KEY` and `SCW_SECRET_KEY`. The key needs `ContainerRegistryFullAccess` and `ContainersFullAccess` scoped to the deployment project, plus `ObjectStorageFullAccess` on that project and organization-scoped `IAMManager` when `enable_result_store = true`. `IAMManager` cannot be narrowed to a project and grants organization-wide escalation, so keep it on a separate bootstrap key rather than the key used for routine deployments. [`../../docs/deploy-scaleway.md`](../../docs/deploy-scaleway.md) has the console and CLI procedures and the bucket-policy caveat that applies once the result store exists.
+
 ## Inputs that contain secrets
 
 `secret_environment_variables` is marked sensitive and is sent to Scaleway as secret container environment variables. The Scaleway provider still has to receive these values, so Terraform state can contain them. Use encrypted remote state with tightly scoped access, never commit state, and rotate secrets after any suspected state exposure.

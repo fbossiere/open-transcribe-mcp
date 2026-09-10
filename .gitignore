@@ -27,3 +27,5 @@ override.tf.json
 *_override.tf.json
 terraform.tfvars
 *.auto.tfvars
+.terragrunt-cache/
+infra/live/

@@ -4,6 +4,15 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Added
+
+- The Scaleway deployment guide now states the IAM permission sets the Terraform key needs, with their project or organization scope, the console and `scw` procedures that create the application, policy, and key, and how the credentials reach Terraform and an S3 state backend. It also records that a bucket policy naming only the result-store application locks a non-owner deployment key out of the bucket.
+- The dev container's TFLint and Terragrunt are documented: how TFLint complements the CI Terraform job, and an optional Terragrunt wrapper carrying the remote state backend the module does not hardcode.
+
+### Changed
+
+- The dev container installs TFLint 0.64.0 and Terragrunt 1.1.4 alongside the pinned Terraform.
+
 ## [1.1.0] - 2026-09-07
 
 ### Added

@@ -7,8 +7,8 @@
     "ghcr.io/devcontainers/features/docker-in-docker:4": {},
     "ghcr.io/devcontainers/features/terraform:1": {
       "version": "1.16.1",
-      "tflint": "none",
-      "terragrunt": "none"
+      "tflint": "0.64.0",
+      "terragrunt": "1.1.4"
     },
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
