@@ -175,6 +175,7 @@ The canonical documentation site is [fbossiere.github.io/open-transcribe-mcp](ht
 - [Privacy and retention](docs/privacy.md)
 - [Scaleway deployment](docs/deploy-scaleway.md)
 - [Release process](docs/releasing.md)
+- [Tutorial: Plaud on Ubuntu, step by step](docs/tutorials/plaud-ubuntu.md) ([PDF](docs/tutorials/plaud-ubuntu.pdf))
 - [Plaud recipe](docs/recipes/plaud.md)
 - [ChatGPT + Google Drive recipe](docs/recipes/chatgpt-gdrive.md)
 - [Contributing](CONTRIBUTING.md)

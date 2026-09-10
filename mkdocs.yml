@@ -15,6 +15,8 @@ nav:
   - Security: security.md
   - Privacy: privacy.md
   - Deploy on Scaleway: deploy-scaleway.md
+  - Tutorials:
+      - Plaud on Ubuntu: tutorials/plaud-ubuntu.md
   - Recipes:
       - Plaud: recipes/plaud.md
       - ChatGPT and Google Drive: recipes/chatgpt-gdrive.md
