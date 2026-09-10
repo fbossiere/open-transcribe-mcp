@@ -57,9 +57,12 @@ class TranscribeAudioRequest(BaseModel):
     model: str | None = Field(default=None, min_length=1, max_length=128)
     routing_policy: RoutingPolicy = RoutingPolicy.DEFAULT
     language: str | None = Field(default=None, min_length=2, max_length=35)
-    diarization: bool = True
-    timestamps: TimestampMode = TimestampMode.SEGMENT
-    transcript_style: TranscriptStyle = TranscriptStyle.CLEAN
+    # Unset means no requirement: the router binds the capability to what the selected model
+    # supports and the response metadata reports what was applied. A stated value is a
+    # requirement, and no model that cannot honour it is selected.
+    diarization: bool | None = None
+    timestamps: TimestampMode | None = None
+    transcript_style: TranscriptStyle | None = None
     phrase_hints: list[str] = Field(default_factory=list, max_length=1000)
     speaker_count_hint: int | None = Field(default=None, ge=1, le=32)
     strict_capabilities: bool = True
@@ -78,6 +81,14 @@ class TranscribeAudioRequest(BaseModel):
         if any(not value.strip() or len(value) > 50 for value in self.phrase_hints):
             raise ValueError("phrase hints must contain between 1 and 50 characters")
         return self
+
+
+class ResolvedTranscribeRequest(TranscribeAudioRequest):
+    """A request whose capabilities are bound to one model. Providers only ever see this."""
+
+    diarization: bool
+    timestamps: TimestampMode
+    transcript_style: TranscriptStyle
 
 
 class ResolvedAudioSource(BaseModel):

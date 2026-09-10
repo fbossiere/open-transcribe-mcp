@@ -4,7 +4,11 @@ from uuid import uuid4
 
 import httpx
 
-from open_transcribe.domain.audio import ResolvedAudioSource, TimestampMode, TranscribeAudioRequest
+from open_transcribe.domain.audio import (
+    ResolvedAudioSource,
+    ResolvedTranscribeRequest,
+    TimestampMode,
+)
 from open_transcribe.domain.capabilities import ModelDescriptor, ModelLifecycle, PricingDescriptor
 from open_transcribe.domain.transcript import (
     CanonicalTranscript,
@@ -66,7 +70,7 @@ class ElevenLabsProvider(HttpProvider):
 
     async def transcribe(
         self,
-        request: TranscribeAudioRequest,
+        request: ResolvedTranscribeRequest,
         source: ResolvedAudioSource,
         model: ModelDescriptor,
     ) -> CanonicalTranscript:
@@ -133,7 +137,7 @@ class ElevenLabsProvider(HttpProvider):
         self,
         data: dict[str, Any],
         *,
-        request: TranscribeAudioRequest,
+        request: ResolvedTranscribeRequest,
         model: ModelDescriptor,
         latency_ms: int,
         request_id: str | None,

@@ -13,7 +13,7 @@ flowchart TD
     N --> O[Optional result store]
 ```
 
-The public contract is defined in `domain/`. Provider-specific request and response shapes remain inside `providers/`. The router filters configured models by explicit capabilities before applying a deterministic policy. The source broker validates URLs and chooses provider-side fetching or an ephemeral proxy file. The service applies preflight limits, invokes one provider at a time, falls back only after normalized transient failures, and chooses inline or stored output.
+The public contract is defined in `domain/`. Provider-specific request and response shapes remain inside `providers/`. The router filters configured models by the capabilities the caller stated, then applies a deterministic policy. A capability left unset is not a requirement: it is bound to what the selected model supports and reported back in the response metadata, so the same request reaches any configured provider. The source broker validates URLs and chooses provider-side fetching or an ephemeral proxy file. The service applies preflight limits, invokes one provider at a time, falls back only after normalized transient failures, and chooses inline or stored output.
 
 Normal inline operation is stateless. Memory storage exists for tests and one-process development. S3-compatible storage enables scale-to-zero and multiple instances without a database. The application does not discover recordings, summarize text, create documents, or track downstream idempotency.
 

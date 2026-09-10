@@ -22,6 +22,8 @@ Plaud is an acquisition example, not a core dependency.
 }
 ```
 
+This request states `diarization`, `timestamps`, and `transcript_style` because a multi-speaker meeting needs them: a stated capability excludes every model that cannot honour it, so this example will not route to Groq Whisper. Drop the three fields to let the request run on any configured provider and read back what was applied from the response metadata.
+
 Vendor connector fields and URL lifetimes can change and are outside the OpenTranscribe compatibility contract. Do not extract credentials, reverse engineer protected systems, bypass access controls, or use audio without the necessary rights.
 
 Plaud is a trademark of its respective owner. OpenTranscribe is independent and is not affiliated with, endorsed by, or sponsored by Plaud.

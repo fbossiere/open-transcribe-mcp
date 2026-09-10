@@ -17,13 +17,12 @@ async def run(server_url: str, bearer_token: str, audio_url: str) -> None:
         result = await client.call_tool(
             "transcribe_audio",
             {
+                # No capability is stated, so the request routes to whichever provider is
+                # configured; the response metadata reports what that model applied.
                 "request": {
                     "source": {"type": "url", "url": audio_url},
                     "provider": "auto",
                     "routing_policy": "quality",
-                    "diarization": True,
-                    "timestamps": "segment",
-                    "transcript_style": "clean",
                 }
             },
         )

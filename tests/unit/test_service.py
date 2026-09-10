@@ -5,7 +5,13 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from open_transcribe.domain.audio import ResolvedAudioSource, SourceDelivery, TranscribeAudioRequest
+from open_transcribe.domain.audio import (
+    ResolvedAudioSource,
+    SourceDelivery,
+    TimestampMode,
+    TranscribeAudioRequest,
+    TranscriptStyle,
+)
 from open_transcribe.domain.errors import ErrorCode, OpenTranscribeError, ProviderError
 from open_transcribe.domain.transcript import (
     CanonicalTranscript,
@@ -35,9 +41,6 @@ class FakeBroker:
 
 
 def canonical(provider: str = "microsoft", model: str = "MAI-Transcribe-2") -> CanonicalTranscript:
-    request = TranscribeAudioRequest.model_validate(
-        {"source": {"url": "https://media.example/audio.mp3"}}
-    )
     return CanonicalTranscript(
         transcript_id="tr_test",
         provider=provider,
@@ -48,8 +51,8 @@ def canonical(provider: str = "microsoft", model: str = "MAI-Transcribe-2") -> C
         usage=UsageInfo(audio_seconds=1),
         metadata=TranscriptionMetadata(
             diarization=True,
-            timestamps=request.timestamps,
-            transcript_style=request.transcript_style,
+            timestamps=TimestampMode.SEGMENT,
+            transcript_style=TranscriptStyle.CLEAN,
         ),
     )
 
@@ -219,9 +222,11 @@ async def test_every_candidate_failing_reports_each_attempt(settings: Settings) 
         )
 
     with pytest.raises(OpenTranscribeError) as caught:
+        # Diarization is stated so the two mocked models are the only candidates; an unstated
+        # capability would also route to Groq, which no mock covers.
         await app.transcribe(
             TranscribeAudioRequest.model_validate(
-                {"source": {"url": "https://media.example/audio.mp3"}}
+                {"source": {"url": "https://media.example/audio.mp3"}, "diarization": True}
             )
         )
 

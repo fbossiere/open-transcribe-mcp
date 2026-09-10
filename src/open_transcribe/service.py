@@ -44,9 +44,12 @@ class TranscriptionService:
         selected: RouteCandidate | None = None
         for candidate in candidates:
             provider = self.registry.get_provider(candidate.model.provider)
+            # Capabilities are bound per candidate, so a fallback model is asked for what it can
+            # actually do rather than for whatever the first candidate supported.
+            resolved = candidate.request
             try:
                 async with self.source_broker.resolve(
-                    str(request.source.url), request.source_delivery, candidate.model
+                    str(resolved.source.url), resolved.source_delivery, candidate.model
                 ) as source:
                     if (
                         source.size_bytes
@@ -59,7 +62,7 @@ class TranscriptionService:
                             provider=candidate.model.provider,
                             model=candidate.model.model,
                         )
-                    transcript = await provider.transcribe(request, source, candidate.model)
+                    transcript = await provider.transcribe(resolved, source, candidate.model)
                     selected = candidate
                     break
             except ProviderError as exc:

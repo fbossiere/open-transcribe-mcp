@@ -4,7 +4,11 @@ import httpx
 import pytest
 import respx
 
-from open_transcribe.domain.audio import ResolvedAudioSource, SourceDelivery, TranscribeAudioRequest
+from open_transcribe.domain.audio import (
+    ResolvedAudioSource,
+    ResolvedTranscribeRequest,
+    SourceDelivery,
+)
 from open_transcribe.providers.elevenlabs.adapter import ElevenLabsProvider
 from open_transcribe.providers.groq.adapter import GroqProvider
 from open_transcribe.providers.microsoft.adapter import MicrosoftProvider
@@ -21,14 +25,15 @@ def adapters(settings: Settings) -> tuple[MicrosoftProvider, ElevenLabsProvider,
     )
 
 
-def request(**overrides: object) -> TranscribeAudioRequest:
+def request(**overrides: object) -> ResolvedTranscribeRequest:
     data: dict[str, object] = {
         "source": {"url": "https://media.example/audio.mp3"},
+        "diarization": True,
         "transcript_style": "verbatim",
         "timestamps": "word",
     }
     data.update(overrides)
-    return TranscribeAudioRequest.model_validate(data)
+    return ResolvedTranscribeRequest.model_validate(data)
 
 
 @pytest.mark.asyncio

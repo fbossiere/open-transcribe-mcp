@@ -13,6 +13,6 @@ Microsoft requires a Speech resource endpoint and key. OpenTranscribe calls the 
 
 Groq word timestamps are requested together with segment timestamps so word data remains attached to canonical segments instead of producing a structurally incomplete response.
 
-The default request asks for diarization and clean output. It will not route to Groq under strict capability negotiation. To use Groq explicitly, set `diarization=false` and `transcript_style=verbatim`.
+`diarization`, `timestamps`, and `transcript_style` are unset by default, which asks for no particular capability: a request naming only its audio source routes to Groq as readily as to Microsoft, and the response metadata reports what the selected model actually applied. State a capability to require it, and no model lacking it is selected: `diarization=true` excludes both Groq models, as does `transcript_style=clean`. Adding `strict_capabilities=false` downgrades instead of failing, with a `requested_capability_not_supported:*` warning naming what was dropped.
 
 Pricing metadata lives in `config/pricing.yaml`. It is informational and deliberately separate from adapter code. Expired or unavailable metadata produces warnings.

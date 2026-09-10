@@ -12,6 +12,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- `diarization`, `timestamps`, and `transcript_style` are now unset by default instead of requesting diarization, segment timestamps, and clean output. An unset capability is bound to what the selected model supports and reported in the response metadata, so a request naming only its audio source now succeeds on a deployment whose only provider is Groq, which previously answered `UNSUPPORTED_CAPABILITY` to the tool's own defaults. A stated capability still excludes every model that cannot honour it. The quickstart example and `examples/transcribe.py` no longer state the three capabilities, so they run against any single configured provider.
+- `strict_capabilities=false` now downgrades under `provider=auto`. It only relaxed an explicitly named provider, so the flag was inert on the request shape that needs it most. The dropped capability is named in a `requested_capability_not_supported:*` warning, and the provider is asked only for what its model does, as it already was for a named provider.
 - The dev container installs TFLint 0.64.0 and Terragrunt 1.1.4 alongside the pinned Terraform.
 
 ## [1.1.0] - 2026-09-07

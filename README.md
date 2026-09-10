@@ -94,9 +94,6 @@ async def main() -> None:
                     "source": {"type": "url", "url": "https://example.org/authorized-audio.mp3"},
                     "provider": "auto",
                     "routing_policy": "quality",
-                    "diarization": True,
-                    "timestamps": "segment",
-                    "transcript_style": "clean",
                 }
             },
         )
@@ -107,6 +104,8 @@ asyncio.run(main())
 ```
 
 Provider choice does not alter the response contract. Set `provider` and `model` to switch explicitly, or use `auto` with `default`, `quality`, `cost`, or `latency` routing.
+
+`diarization`, `timestamps`, and `transcript_style` are unset above on purpose: an unset capability is not requested, so the request routes to any configured model and the response metadata reports what that model applied. Stating one makes it a requirement — `"diarization": True` excludes every model that cannot diarize rather than quietly returning a single-speaker transcript. See [providers and capabilities](docs/providers.md).
 
 ## Docker
 

@@ -4,16 +4,27 @@ from typing import Any
 
 import yaml
 
-from open_transcribe.domain.audio import ProviderId, RoutingPolicy, TranscribeAudioRequest
+from open_transcribe.domain.audio import (
+    ProviderId,
+    ResolvedTranscribeRequest,
+    RoutingPolicy,
+    TimestampMode,
+    TranscribeAudioRequest,
+    TranscriptStyle,
+)
 from open_transcribe.domain.capabilities import ModelDescriptor, ModelLifecycle
 from open_transcribe.domain.errors import ErrorCode, OpenTranscribeError
 from open_transcribe.providers.registry import ProviderRegistry
 from open_transcribe.settings import Settings
 
+TIMESTAMP_PREFERENCE = (TimestampMode.SEGMENT, TimestampMode.WORD, TimestampMode.NONE)
+STYLE_PREFERENCE = (TranscriptStyle.CLEAN, TranscriptStyle.VERBATIM)
+
 
 @dataclass(frozen=True, slots=True)
 class RouteCandidate:
     model: ModelDescriptor
+    request: ResolvedTranscribeRequest
     warnings: tuple[str, ...] = field(default_factory=tuple)
 
 
@@ -55,7 +66,9 @@ class Router:
             models = [explicit, *[model for model in models if model.key != explicit.key]]
 
         evaluated = [(model, self._missing_capabilities(request, model)) for model in models]
-        compatible = [RouteCandidate(model) for model, missing in evaluated if not missing]
+        compatible = [
+            self._candidate(request, model, []) for model, missing in evaluated if not missing
+        ]
         if explicit and (missing := self._missing_capabilities(request, explicit)):
             if request.strict_capabilities:
                 raise OpenTranscribeError(
@@ -65,13 +78,12 @@ class Router:
                     model=explicit.model,
                     details={"unsupported": missing},
                 )
-            compatible.insert(
-                0,
-                RouteCandidate(
-                    explicit,
-                    tuple(f"requested_capability_not_supported:{name}" for name in missing),
-                ),
-            )
+            compatible.insert(0, self._candidate(request, explicit, missing))
+        if not compatible and not request.strict_capabilities:
+            # No model satisfies the request, but the caller allowed a downgrade. Offer every
+            # configured model with the capabilities it cannot honour dropped and reported,
+            # rather than making the flag meaningless whenever the provider is not named.
+            compatible = [self._candidate(request, model, missing) for model, missing in evaluated]
         if not compatible:
             requested = sorted({name for _, missing in evaluated for name in missing})
             raise OpenTranscribeError(
@@ -87,6 +99,52 @@ class Router:
             return ordered[:1]
         return ordered
 
+    def _candidate(
+        self, request: TranscribeAudioRequest, model: ModelDescriptor, missing: list[str]
+    ) -> RouteCandidate:
+        return RouteCandidate(
+            model,
+            self._resolve(request, model),
+            tuple(f"requested_capability_not_supported:{name}" for name in missing),
+        )
+
+    def _resolve(
+        self, request: TranscribeAudioRequest, model: ModelDescriptor
+    ) -> ResolvedTranscribeRequest:
+        """Bind the capabilities the caller left unstated to what the selected model supports.
+
+        A stated capability the model cannot honour only reaches this point when the caller
+        allowed a downgrade, and its candidate carries a warning naming it. Providers therefore
+        never receive a capability their model would silently ignore.
+        """
+        timestamps = request.timestamps
+        if timestamps not in model.timestamp_modes:
+            timestamps = next(
+                (mode for mode in TIMESTAMP_PREFERENCE if mode in model.timestamp_modes),
+                TimestampMode.NONE,
+            )
+        style = request.transcript_style
+        if style not in model.transcript_styles:
+            style = next(
+                (
+                    candidate
+                    for candidate in STYLE_PREFERENCE
+                    if candidate in model.transcript_styles
+                ),
+                TranscriptStyle.VERBATIM,
+            )
+        diarization = (
+            model.supports_diarization if request.diarization is None else request.diarization
+        )
+        return ResolvedTranscribeRequest.model_validate(
+            {
+                **request.model_dump(mode="python"),
+                "diarization": diarization and model.supports_diarization,
+                "timestamps": timestamps,
+                "transcript_style": style,
+            }
+        )
+
     def _missing_capabilities(
         self, request: TranscribeAudioRequest, model: ModelDescriptor
     ) -> list[str]:
@@ -95,9 +153,11 @@ class Router:
             missing.append("preview_model")
         if request.diarization and not model.supports_diarization:
             missing.append("diarization")
-        if request.timestamps not in model.timestamp_modes:
+        if request.timestamps is not None and request.timestamps not in model.timestamp_modes:
             missing.append(f"timestamps:{request.timestamps.value}")
-        if request.transcript_style not in model.transcript_styles:
+        if request.transcript_style is not None and (
+            request.transcript_style not in model.transcript_styles
+        ):
             missing.append(f"transcript_style:{request.transcript_style.value}")
         if request.language is None and not model.supports_language_detection:
             missing.append("language_detection")
