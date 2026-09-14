@@ -50,7 +50,7 @@ jobs:
           enable-cache: true
 
       - name: Install locked dependencies
-        run: uv sync --locked --extra dev --extra s3
+        run: uv sync --locked --extra dev --extra s3 --extra desktop
 
       - name: Validate release metadata
         run: >-
@@ -228,6 +228,90 @@ jobs:
           echo "MCP Registry did not expose version ${version} in time" >&2
           exit 1
 
+  build-desktop-package:
+    name: Build the Debian desktop package
+    needs: build
+    # Pinned to the oldest supported target, so the shared-library requirements derived from the
+    # produced binaries are the ones that hold on Ubuntu 24.04 LTS.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out released tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          persist-credentials: false
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: latest-known
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install Qt runtime libraries the bundle links against
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes \
+            binutils dpkg-dev libegl1 libgl1 libxkbcommon-x11-0 libdbus-1-3 \
+            libfontconfig1 libfreetype6 libxcb-cursor0
+
+      - name: Install locked build dependencies
+        run: uv sync --locked --extra dev --extra desktop --extra packaging
+
+      - name: Build the package
+        run: uv run bash scripts/build_deb.sh
+
+      - name: Generate the package SBOM
+        run: >-
+          uv run cyclonedx-py environment
+          --output-format json
+          --outfile dist/open-transcribe-assistant.cdx.json
+          .venv
+
+      - name: Record build provenance inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="$(ls dist/open-transcribe-assistant_*_amd64.deb)"
+          jq --null-input \
+            --arg source_revision "$(git rev-parse HEAD)" \
+            --arg tag "$RELEASE_TAG" \
+            --arg digest "$(sha256sum "$package" | cut -d ' ' -f 1)" \
+            --arg package "$(basename "$package")" \
+            --arg os "$(. /etc/os-release && echo "$PRETTY_NAME")" \
+            --arg python "$(uv run python -c 'import sys;print(sys.version.split()[0])')" \
+            --arg workflow "${GITHUB_WORKFLOW}" \
+            --arg run "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            --arg epoch "${SOURCE_DATE_EPOCH:-}" \
+            '$ARGS.named' >dist/open-transcribe-assistant-provenance.json
+
+      - name: Verify the built package in an isolated environment
+        run: uv run python scripts/verify_deb.py dist/open-transcribe-assistant_*_amd64.deb
+
+      - name: Attest package provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/open-transcribe-assistant_*_amd64.deb
+
+      - name: Upload the desktop package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: desktop-package
+          path: |
+            dist/open-transcribe-assistant_*_amd64.deb
+            dist/open-transcribe-assistant_*_amd64.deb.sha256
+            dist/open-transcribe-assistant.cdx.json
+            dist/open-transcribe-assistant-provenance.json
+          if-no-files-found: error
+          retention-days: 7
+
+
   publish-container:
     name: Publish container to GHCR
     needs: build
@@ -338,10 +422,12 @@ jobs:
   publish-github-release:
     name: Publish GitHub release
     needs:
+      - build-desktop-package
       - publish-container
       - publish-mcp-registry
     if: >-
       always() &&
+      needs.build-desktop-package.result == 'success' &&
       needs.publish-container.result == 'success' &&
       (github.event_name == 'workflow_dispatch' || needs.publish-mcp-registry.result == 'success')
     runs-on: ubuntu-latest
@@ -361,9 +447,15 @@ jobs:
           name: container-release-metadata
           path: release-assets/
 
+      - name: Download the desktop package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: desktop-package
+          path: release-assets/
+
       - name: Generate release checksums
         working-directory: release-assets
-        run: sha256sum *.whl *.tar.gz *.txt *.json >SHA256SUMS
+        run: sha256sum *.whl *.tar.gz *.txt *.json *.deb >SHA256SUMS
 
       - name: Create immutable GitHub release
         env:
@@ -374,6 +466,9 @@ jobs:
           release-assets/*.tar.gz
           release-assets/container-digest.txt
           release-assets/open-transcribe-mcp-container.cdx.json
+          release-assets/open-transcribe-assistant_*_amd64.deb
+          release-assets/open-transcribe-assistant.cdx.json
+          release-assets/open-transcribe-assistant-provenance.json
           release-assets/SHA256SUMS
           --repo "${{ github.repository }}"
           --title "OpenTranscribe MCP $RELEASE_TAG"
@@ -389,5 +484,5 @@ jobs:
           set -euo pipefail
           release="$(gh api "repos/${{ github.repository }}/releases/tags/${RELEASE_TAG}")"
           jq --exit-status \
-            '(.draft == false) and (.prerelease == false) and (.immutable == true) and (.assets | length == 5)' \
+            '(.draft == false) and (.prerelease == false) and (.immutable == true) and (.assets | length == 8)' \
             <<<"$release" >/dev/null

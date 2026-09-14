@@ -15,4 +15,6 @@ Start with the [repository quickstart](https://github.com/fbossiere/open-transcr
 
 If you are not a developer and want to transcribe a Plaud recorder on Ubuntu, follow the [step-by-step tutorial](tutorials/plaud-ubuntu.md) instead.
 
+On a Linux desktop, the optional [OpenTranscribe Setup](desktop.md) package installs the engine and connects it to a local MCP client without a terminal.
+
 OpenTranscribe works only with audio the operator is authorized to process. It does not modify recorder firmware, extract credentials, or bypass access controls.

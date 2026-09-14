@@ -14,6 +14,9 @@ nav:
   - Providers: providers.md
   - Security: security.md
   - Privacy: privacy.md
+  - Desktop:
+      - OpenTranscribe Setup on Linux: desktop.md
+      - Release acceptance: desktop-acceptance.md
   - Deploy on Scaleway: deploy-scaleway.md
   - Tutorials:
       - Plaud on Ubuntu: tutorials/plaud-ubuntu.md

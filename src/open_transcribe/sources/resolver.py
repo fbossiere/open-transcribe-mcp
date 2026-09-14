@@ -1,6 +1,6 @@
 import asyncio
 import tempfile
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urljoin
@@ -10,14 +10,34 @@ import httpx
 from open_transcribe.domain.audio import ResolvedAudioSource, SourceDelivery
 from open_transcribe.domain.capabilities import ModelDescriptor
 from open_transcribe.domain.errors import ErrorCode, OpenTranscribeError
+from open_transcribe.policy import TranscriptionPolicy
 from open_transcribe.security.redaction import redact_url
 from open_transcribe.security.ssrf import ValidatedUrl, validate_source_url
 from open_transcribe.settings import Settings
 
+TemporaryFileFactory = Callable[[], str]
+"""Creates one private, empty file for a single relayed download and returns its path.
+
+The desktop distribution replaces this with an owned, expiring runtime area; the default keeps
+the existing ephemeral behaviour for the CLI, container, and hosted deployments.
+"""
+
+
+def _ephemeral_temporary_file() -> str:
+    with tempfile.NamedTemporaryFile(prefix="open-transcribe-", delete=False) as temp:
+        return temp.name
+
 
 class SourceBroker:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        policy: TranscriptionPolicy | None = None,
+        workspace: "TemporaryFileFactory | None" = None,
+    ) -> None:
         self.settings = settings
+        self.policy = policy or TranscriptionPolicy.unrestricted()
+        self.workspace = workspace or _ephemeral_temporary_file
 
     def select_delivery(self, requested: SourceDelivery, model: ModelDescriptor) -> SourceDelivery:
         if requested == SourceDelivery.PASSTHROUGH and not model.supports_url_input:
@@ -46,6 +66,9 @@ class SourceBroker:
         if delivery == SourceDelivery.PASSTHROUGH:
             yield ResolvedAudioSource(original_url=source_url, delivery=delivery)
             return
+        # Relay needs a temporary copy of the audio. Refuse before the download, so a request the
+        # installation never permitted costs the user neither bytes nor a provider call.
+        self.policy.require_temporary_audio(provider=model.provider, model=model.model)
         path: str | None = None
         try:
             path, media_type, size = await self._download(source_url, validated)
@@ -64,8 +87,7 @@ class SourceBroker:
         self, source_url: str, validated: ValidatedUrl
     ) -> tuple[str, str | None, int]:
         current = source_url
-        with tempfile.NamedTemporaryFile(prefix="open-transcribe-", delete=False) as temp:
-            path = temp.name
+        path = self.workspace()
         try:
             async with httpx.AsyncClient(
                 follow_redirects=False,

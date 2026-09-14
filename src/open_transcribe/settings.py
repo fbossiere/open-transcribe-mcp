@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field, HttpUrl, SecretStr, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 
 def _default_config_dir() -> Path:
@@ -60,6 +60,7 @@ class Settings(BaseSettings):
     )
 
     environment: Literal["dev", "test", "prod"] = "prod"
+    transport: Literal["http", "stdio"] = "http"
     host: str = "0.0.0.0"  # noqa: S104
     port: int = Field(default=8000, ge=1, le=65535)
     default_provider: str = "microsoft"
@@ -86,12 +87,28 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_security(self) -> "Settings":
-        if self.security.auth_mode == "bearer" and self.security.bearer_token is None:
-            raise ValueError("OT_SECURITY__BEARER_TOKEN is required for bearer auth")
+        """Validate authentication against the transport that will actually carry the traffic.
+
+        STDIO is bounded by the local process and session rather than by a network credential, so
+        it neither needs nor accepts a bearer token. HTTP keeps its existing contract unchanged:
+        the local transport is a separate case, not a relaxation of the remote one.
+        """
         if self.security.auth_mode == "oidc":
             raise ValueError("OIDC is not implemented; use bearer or none")
+        if self.transport == "stdio":
+            if self.security.auth_mode != "none":
+                raise ValueError(
+                    "the stdio transport is authenticated by the local session; "
+                    "set security.auth_mode to 'none' for it"
+                )
+            return self._validate_stores()
+        if self.security.auth_mode == "bearer" and self.security.bearer_token is None:
+            raise ValueError("OT_SECURITY__BEARER_TOKEN is required for bearer auth")
         if self.environment == "prod" and self.security.auth_mode == "none":
-            raise ValueError("unauthenticated mode is not allowed in production")
+            raise ValueError("unauthenticated HTTP is not allowed in production")
+        return self._validate_stores()
+
+    def _validate_stores(self) -> "Settings":
         if self.result_store.backend != "disabled" and self.result_store.cursor_secret is None:
             raise ValueError(
                 "OT_RESULT_STORE__CURSOR_SECRET is required when result storage is enabled"
@@ -99,6 +116,26 @@ class Settings(BaseSettings):
         if self.result_store.backend == "s3" and not self.result_store.s3_bucket:
             raise ValueError("OT_RESULT_STORE__S3_BUCKET is required for the S3 result store")
         return self
+
+
+class ExplicitSettings(Settings):
+    """Settings built only from the values passed in.
+
+    Managed desktop mode uses this so an ambient ``OT_*`` variable, a working-directory ``.env``,
+    or an unrelated shell export cannot change what a client-launched engine does. Environment
+    precedence is removed at the source level rather than by clearing variables at call sites.
+    """
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (init_settings,)
 
 
 @lru_cache(maxsize=1)

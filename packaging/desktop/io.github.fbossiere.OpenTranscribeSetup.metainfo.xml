@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.fbossiere.OpenTranscribeSetup</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <name>OpenTranscribe Setup</name>
+  <name xml:lang="fr">Configuration d'OpenTranscribe</name>
+  <summary>Connect a speech-to-text provider to your local assistant</summary>
+  <summary xml:lang="fr">Connecter un fournisseur de transcription à votre assistant local</summary>
+  <description>
+    <p>
+      OpenTranscribe Setup configures the OpenTranscribe transcription engine and connects it to
+      a local MCP client. It stores provider credentials in your session keyring, registers the
+      packaged engine with your assistant, and diagnoses the connection.
+    </p>
+    <p>
+      Audio is sent to the transcription provider you choose. The transcript is returned to your
+      assistant, whose own provider may process it in turn. No transcript history is kept by
+      default, and no OpenTranscribe account is required.
+    </p>
+    <p xml:lang="fr">
+      La Configuration d'OpenTranscribe paramètre le moteur de transcription OpenTranscribe et le
+      relie à un client MCP local. Elle enregistre les clés de fournisseur dans le trousseau de
+      votre session, déclare le moteur fourni auprès de votre assistant et diagnostique la
+      connexion.
+    </p>
+  </description>
+  <launchable type="desktop-id">open-transcribe-assistant.desktop</launchable>
+  <url type="homepage">https://github.com/fbossiere/open-transcribe-mcp</url>
+  <url type="bugtracker">https://github.com/fbossiere/open-transcribe-mcp/issues</url>
+  <url type="help">https://fbossiere.github.io/open-transcribe-mcp/</url>
+  <developer id="io.github.fbossiere">
+    <name>OpenTranscribe contributors</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+  <categories>
+    <category>Utility</category>
+    <category>Settings</category>
+  </categories>
+  <provides>
+    <binary>open-transcribe-assistant</binary>
+  </provides>
+  <releases>
+    <release version="@VERSION@" date="@RELEASE_DATE@">
+      <description>
+        <p>First Linux desktop distribution of OpenTranscribe Setup.</p>
+      </description>
+    </release>
+  </releases>
+</component>

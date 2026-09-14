@@ -39,7 +39,7 @@ jobs:
           enable-cache: true
 
       - name: Install locked documentation dependencies
-        run: uv sync --locked --extra dev
+        run: uv sync --locked --extra dev --extra desktop
 
       - name: Build documentation strictly
         run: uv run mkdocs build --strict

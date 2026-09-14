@@ -1,0 +1,46 @@
+# Local MCP client compatibility matrix.
+#
+# `support_status` records how far support has actually been proven for this build, not how
+# likely it is to work:
+#
+#   tested       Registration and readback verified against this client in the release matrix.
+#   untested     The format is documented, but this build has not been tested against it. The
+#                assistant offers it with that stated, and always verifies by reading back.
+#   manual_only  No supported registration API. The user is shown the exact fields.
+#
+# Every entry ships as `untested` until a maintainer records a real run in
+# docs/desktop-acceptance.md. Nothing here may be promoted without that evidence.
+
+schema_version = 1
+
+[[clients]]
+id = "claude-desktop"
+display_name = "Claude Desktop"
+kind = "json"
+support_status = "untested"
+key_path = ["mcpServers"]
+config_paths = [
+  "$XDG_CONFIG_HOME/Claude/claude_desktop_config.json",
+  "$HOME/.config/Claude/claude_desktop_config.json",
+]
+restart_required = true
+
+[[clients]]
+id = "claude-code"
+display_name = "Claude Code"
+kind = "json"
+support_status = "untested"
+key_path = ["mcpServers"]
+config_paths = ["$HOME/.claude.json"]
+restart_required = true
+
+[[clients]]
+id = "codex-cli"
+display_name = "Codex CLI"
+kind = "command"
+support_status = "untested"
+executables = ["/usr/local/bin/codex", "/usr/bin/codex", "$HOME/.local/bin/codex"]
+list_argv = ["mcp", "list", "--json"]
+add_argv = ["mcp", "add", "{name}", "--", "{command}", "{args}"]
+remove_argv = ["mcp", "remove", "{name}"]
+restart_required = true

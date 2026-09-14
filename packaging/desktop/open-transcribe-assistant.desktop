@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=OpenTranscribe Setup
+Name[fr]=Configuration d'OpenTranscribe
+GenericName=Transcription setup
+GenericName[fr]=Configuration de transcription
+Comment=Connect a speech-to-text provider to your local assistant
+Comment[fr]=Connecter un fournisseur de transcription à votre assistant local
+Exec=/usr/bin/open-transcribe-assistant
+Icon=open-transcribe-assistant
+Terminal=false
+StartupNotify=true
+StartupWMClass=open-transcribe-assistant
+Categories=Utility;Settings;
+Keywords=transcription;speech;MCP;assistant;
+Keywords[fr]=transcription;parole;MCP;assistant;

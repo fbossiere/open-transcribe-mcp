@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="OpenTranscribe Setup">
+  <rect width="64" height="64" rx="14" fill="#14343f"/>
+  <g fill="none" stroke="#7fd1c1" stroke-width="3.2" stroke-linecap="round">
+    <path d="M17 24v16"/>
+    <path d="M25 18v28"/>
+    <path d="M33 26v12"/>
+    <path d="M41 21v22"/>
+    <path d="M49 28v8"/>
+  </g>
+</svg>

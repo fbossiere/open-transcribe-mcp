@@ -45,7 +45,8 @@
         "redhat.vscode-yaml",
         "hashicorp.terraform",
         "ms-azuretools.vscode-docker",
-        "github.vscode-github-actions"
+        "github.vscode-github-actions",
+        "Anthropic.claude-code"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/home/vscode/.venv/bin/python",

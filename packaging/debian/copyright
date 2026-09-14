@@ -1,0 +1,19 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: open-transcribe-mcp
+Source: https://github.com/fbossiere/open-transcribe-mcp
+
+Files: *
+Copyright: OpenTranscribe contributors
+License: Apache-2.0
+ Licensed under the Apache License, Version 2.0. The full text is in
+ /usr/share/common-licenses/Apache-2.0 and in
+ /usr/share/doc/open-transcribe-assistant/LICENSE.
+
+Files: /opt/open-transcribe-assistant/*
+Copyright: see THIRD-PARTY-NOTICES
+License: various
+ This package bundles a Python runtime, Qt components, and third-party Python libraries. Their
+ licences and any source or relinking obligations are recorded in
+ /usr/share/doc/open-transcribe-assistant/THIRD-PARTY-NOTICES and in the SBOM published with the
+ release. That review is a release deliverable; the project's own licence does not cover every
+ bundled component.

@@ -14,6 +14,7 @@ from open_transcribe.domain.audio import (
 )
 from open_transcribe.domain.capabilities import ModelDescriptor, ModelLifecycle
 from open_transcribe.domain.errors import ErrorCode, OpenTranscribeError
+from open_transcribe.policy import TranscriptionPolicy
 from open_transcribe.providers.registry import ProviderRegistry
 from open_transcribe.settings import Settings
 
@@ -34,20 +35,29 @@ class Router:
         registry: ProviderRegistry,
         settings: Settings,
         routing_config: dict[str, Any] | None = None,
+        policy: TranscriptionPolicy | None = None,
     ) -> None:
         self.registry = registry
         self.settings = settings
+        self.policy = policy or TranscriptionPolicy.unrestricted()
         self.config = routing_config or load_routing(settings.config_dir / "routing.yaml")
 
     def route(self, request: TranscribeAudioRequest) -> list[RouteCandidate]:
-        models = [model for model in self.registry.list_models() if model.configured]
+        # Authorization is applied to the candidate set before ranking, so a disabled provider is
+        # never ranked, never selected, and never reachable through a fallback ordering.
+        models = [
+            model
+            for model in self.registry.list_models()
+            if model.configured and self.policy.permits_provider(model.provider)
+        ]
         if not models:
             raise OpenTranscribeError(
                 ErrorCode.PROVIDER_UNAVAILABLE,
-                "No transcription provider is configured.",
+                "No transcription provider is enabled and configured.",
             )
         explicit: ModelDescriptor | None = None
         if request.provider != ProviderId.AUTO:
+            self.policy.require_provider(request.provider.value, model=request.model)
             provider_models = [
                 model for model in models if model.provider == request.provider.value
             ]
@@ -97,6 +107,11 @@ class Router:
             ordered.sort(key=lambda candidate: candidate.model.key != explicit.key)
         if not request.allow_fallback:
             return ordered[:1]
+        if not self.policy.allow_cross_provider_fallback:
+            # Fallback stays inside the provider the request already selected. Disclosing the
+            # audio to a second provider is a separate permission, not a retry detail.
+            chosen = ordered[0].model.provider
+            return [item for item in ordered if item.model.provider == chosen]
         return ordered
 
     def _candidate(

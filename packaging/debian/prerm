@@ -1,0 +1,6 @@
+#!/bin/sh
+# Removal touches package-owned system files only. It never enumerates home directories, opens a
+# session keyring, or deletes user data: per-user reset belongs in OpenTranscribe Setup, before
+# uninstalling.
+set -e
+exit 0
