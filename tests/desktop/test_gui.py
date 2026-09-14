@@ -143,7 +143,7 @@ def test_nothing_clips_at_the_smallest_supported_size(window, application: QAppl
     for index in range(window.stack.count()):
         page = window.stack.widget(index)
         assert page.minimumSizeHint().width() <= SMALLEST_SUPPORTED[0], type(page).__name__
-    assert window.scroll.horizontalScrollBar().maximum() == 0
+    assert window.scroll_area.horizontalScrollBar().maximum() == 0
 
 
 def test_the_provider_step_shows_canonical_capabilities_not_a_hand_written_catalogue(

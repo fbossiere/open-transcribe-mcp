@@ -73,7 +73,7 @@ class StatusPage(QWidget):
     def show_state(self, config: ManagedConfig | None, report: DiagnosticReport) -> None:
         while self.summary.count():
             item = self.summary.takeAt(0)
-            if (widget := item.widget()) is not None:
+            if item is not None and (widget := item.widget()) is not None:
                 widget.deleteLater()
         rows = [
             ("Version", report.application_version),
@@ -104,7 +104,7 @@ class StatusPage(QWidget):
 
         while self._rows.count():
             item = self._rows.takeAt(0)
-            if (widget := item.widget()) is not None:
+            if item is not None and (widget := item.widget()) is not None:
                 widget.deleteLater()
         for check in report.checks:
             self._rows.addWidget(StatusRow(check.title, check.severity.value, check.recovery))

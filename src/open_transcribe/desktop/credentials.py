@@ -112,7 +112,8 @@ def _secret_service_backend() -> object:
                 "(for example gnome-keyring), then open OpenTranscribe Setup again."
             ),
         ) from exc
-    backend = SecretService.Keyring()
+    # The upstream backend constructor has no type annotations.
+    backend = SecretService.Keyring()  # type: ignore[no-untyped-call]
     backend.appid = _LABEL
     return backend
 

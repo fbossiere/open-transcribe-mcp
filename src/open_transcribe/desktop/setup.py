@@ -204,7 +204,7 @@ class SetupService:
         config = ManagedConfig(
             schema_version=SCHEMA_VERSION,
             installation_id=installation_id,
-            locale=intent.locale,  # type: ignore[arg-type]
+            locale=intent.locale,
             selection=intent.selection,
             providers=providers,
             privacy=intent.privacy,

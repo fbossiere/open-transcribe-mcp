@@ -73,7 +73,7 @@ def sample_request(model: ModelDescriptor) -> TranscribeAudioRequest:
     is no test-only bypass, and no local filesystem path is introduced anywhere.
     """
     return TranscribeAudioRequest(
-        source=UrlAudioSource(url=SAMPLE_URL),  # type: ignore[arg-type]
+        source=UrlAudioSource(url=SAMPLE_URL),
         provider=ProviderId(model.provider),
         model=model.model,
         routing_policy=RoutingPolicy.FIXED,

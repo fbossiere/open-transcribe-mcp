@@ -101,7 +101,7 @@ class ChecksStep(Step):
     def show_report(self, report: DiagnosticReport) -> None:
         while self._rows.count():
             item = self._rows.takeAt(0)
-            if (widget := item.widget()) is not None:
+            if item is not None and (widget := item.widget()) is not None:
                 widget.deleteLater()
         blocked = False
         for check in report.checks:
@@ -221,8 +221,8 @@ class ProviderStep(Step):
         self.threshold_label.setBuddy(self.threshold)
         threshold_help = body_label(self.t("cost.threshold.help"))
         threshold_help.setProperty("muted", True)
-        for widget in (self.threshold_label, self.threshold, threshold_help):
-            self.column.addWidget(widget)
+        for threshold_widget in (self.threshold_label, self.threshold, threshold_help):
+            self.column.addWidget(threshold_widget)
 
         self.column.addStretch(1)
         self._provider_changed()
@@ -234,7 +234,8 @@ class ProviderStep(Step):
         return self._descriptors[index] if 0 <= index < len(self._descriptors) else None
 
     def selected_model(self) -> ModelDescriptor | None:
-        return self.model_box.currentData()
+        model = self.model_box.currentData()
+        return model if isinstance(model, ModelDescriptor) else None
 
     def _provider_changed(self) -> None:
         descriptor = self.descriptor()
@@ -437,7 +438,7 @@ class ReviewStep(Step):
     def show_plan(self, plan: SetupPlan, model: ModelDescriptor | None, client: str) -> None:
         while self._grid.count():
             item = self._grid.takeAt(0)
-            if (widget := item.widget()) is not None:
+            if item is not None and (widget := item.widget()) is not None:
                 widget.deleteLater()
         privacy = plan.config.privacy
         on, off = self.t("review.on"), self.t("review.off")
@@ -521,7 +522,7 @@ class FinishStep(Step):
     def show_outcome(self, outcome: ApplyOutcome, client: str) -> None:
         while self._rows.count():
             item = self._rows.takeAt(0)
-            if (widget := item.widget()) is not None:
+            if item is not None and (widget := item.widget()) is not None:
                 widget.deleteLater()
         engine_ok = outcome.engine is not None and outcome.engine.ok
         self._rows.addWidget(

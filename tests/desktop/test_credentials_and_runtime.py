@@ -37,6 +37,15 @@ def test_a_missing_secret_service_is_an_error_not_a_fallback(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """There is no plaintext, file, or environment path to fall back to."""
+    import secretstorage
+
+    def unavailable_bus() -> None:
+        raise secretstorage.exceptions.SecretServiceNotAvailableException(
+            "The test session has no Secret Service."
+        )
+
+    # Simulate the missing service instead of depending on the developer's real keyring.
+    monkeypatch.setattr(secretstorage, "dbus_init", unavailable_bus)
     with pytest.raises(DesktopError) as caught:
         SecretServiceCredentialStore()
     assert caught.value.code is DesktopErrorCode.KEYRING_UNAVAILABLE

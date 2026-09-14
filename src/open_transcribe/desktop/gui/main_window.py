@@ -76,13 +76,13 @@ class MainWindow(QMainWindow):
         outer.addLayout(header)
 
         # Navigation stays visible while the content scrolls.
-        self.scroll = QScrollArea()
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.stack = QStackedWidget()
         self.stack.setMaximumWidth(CONTENT_WIDTH)
-        self.scroll.setWidget(self.stack)
-        outer.addWidget(self.scroll, 1)
+        self.scroll_area.setWidget(self.stack)
+        outer.addWidget(self.scroll_area, 1)
 
         self.busy = BusyBar()
         outer.addWidget(self.busy)
@@ -184,7 +184,7 @@ class MainWindow(QMainWindow):
             widget.activate()
             if index == 1:
                 self.run_checks()
-        self.scroll.verticalScrollBar().setValue(0)
+        self.scroll_area.verticalScrollBar().setValue(0)
 
     def go_back(self) -> None:
         self.show_step(max(self.stack.currentIndex() - 1, 0))

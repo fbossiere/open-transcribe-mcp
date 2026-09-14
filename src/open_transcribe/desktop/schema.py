@@ -129,7 +129,11 @@ class ManagedConfig(Closed):
 
     def to_toml_dict(self) -> dict[str, Any]:
         """Serialize without `None` values, which TOML cannot represent."""
-        return _drop_none(self.model_dump(mode="json"))
+        return {
+            key: _drop_none(value)
+            for key, value in self.model_dump(mode="json").items()
+            if value is not None
+        }
 
 
 def _drop_none(value: Any) -> Any:
