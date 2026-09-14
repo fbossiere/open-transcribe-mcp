@@ -20,6 +20,30 @@ uv run mypy src
 
 Python 3.12 is required. Never commit `.env`, provider credentials, signed URLs, personal recordings, or real transcript content.
 
+### Test Groq locally with real credentials
+
+Keep `OT_GROQ__API_KEY` in the git-ignored `.env.local` file, then run:
+
+```bash
+uv sync --locked --extra dev --extra s3
+uv run pytest tests/integration --live-groq --live-env-file .env.local -q
+```
+
+These six checks cover local health and authentication, model capabilities, rejection of
+unsupported diarization without a network call, and one real Groq transcription shared by the
+remaining checks. They download and upload only the project's short synthetic audio fixture,
+verify the canonical result, English reference words, and segment timestamps, and retain no
+transcript. The provider call uses `whisper-large-v3-turbo`; select `--groq-model whisper-large-v3`
+to test the other Groq model. Normal provider charges and transient-error retries apply.
+
+The suite starts MCP in-process, so no deployed server or listening port is needed. It reads
+the specified settings file explicitly and ignores blank entries; it leaves that file unchanged.
+The ordinary server command still reads `.env`, not `.env.local`. Test authentication uses an
+ephemeral token, storage is disabled, and HTTPS/private-network protections remain enabled.
+Without `--live-groq`, these tests skip before reading credentials or making network calls,
+including when `.env.local` exists. The English check does not assert bilingual accuracy, since
+Groq does not advertise code-switching support.
+
 ### Dev container
 
 A [dev container](.devcontainer/devcontainer.json) reproduces the CI toolchain: pinned `uv`, Python 3.12, Docker, Terraform, TFLint, Terragrunt, the GitHub CLI, and the `ffmpeg`/`espeak-ng` pair that `scripts/generate_test_fixture.sh` needs. Open the repository in a supporting editor and reopen in the container, or run `devcontainer up --workspace-folder .`.

@@ -1,7 +1,13 @@
 # syntax=docker/dockerfile:1.7
 FROM ghcr.io/astral-sh/uv:0.12.10@sha256:2bb3ebca0a796a155094a27773d290c4b074572e6107f171d88d086682fd2500 AS uv
 
-FROM python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea AS builder
+FROM python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea AS base
+# Apply Debian fixes published since the pinned Python image was built.
+RUN apt-get update \
+    && apt-get upgrade --yes --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM base AS builder
 COPY --from=uv /uv /usr/local/bin/uv
 WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
@@ -11,7 +17,7 @@ COPY src ./src
 COPY config ./config
 RUN uv sync --frozen --no-dev --extra s3 --no-editable
 
-FROM python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea AS runtime
+FROM base AS runtime
 LABEL org.opencontainers.image.source="https://github.com/fbossiere/open-transcribe-mcp" \
       org.opencontainers.image.title="OpenTranscribe MCP" \
       org.opencontainers.image.licenses="Apache-2.0"
