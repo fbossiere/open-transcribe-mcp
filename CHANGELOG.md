@@ -13,6 +13,10 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - A step-by-step tutorial for transcribing a Plaud recorder on Ubuntu, written for readers who do not write code, published on the documentation site and as a PDF. `scripts/build_tutorial_pdf.py` renders the PDF from the same Markdown source.
 - `examples/plaud_transcribe.py`, which transcribes a local audio file by publishing it on a loopback-only server for the duration of one `proxy`-delivery request and writing a readable transcript beside the audio.
 
+### Security
+
+- Apply available Debian package fixes in a shared Docker base stage so the builder and runtime do not retain vulnerabilities patched after the pinned Python image was published.
+
 ### Changed
 
 - `diarization`, `timestamps`, and `transcript_style` are now unset by default instead of requesting diarization, segment timestamps, and clean output. An unset capability is bound to what the selected model supports and reported in the response metadata, so a request naming only its audio source now succeeds on a deployment whose only provider is Groq, which previously answered `UNSUPPORTED_CAPABILITY` to the tool's own defaults. A stated capability still excludes every model that cannot honour it. The quickstart example and `examples/transcribe.py` no longer state the three capabilities, so they run against any single configured provider.
