@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Any, Literal
 
 import structlog
@@ -11,29 +12,45 @@ from open_transcribe.domain.audio import TranscribeAudioRequest
 from open_transcribe.domain.errors import ErrorCode, OpenTranscribeError
 from open_transcribe.domain.transcript import ToolErrorResult
 from open_transcribe.observability.logging import configure_logging
+from open_transcribe.policy import TranscriptionPolicy
 from open_transcribe.providers.registry import ProviderRegistry
 from open_transcribe.result_store.factory import create_result_store
 from open_transcribe.routing.router import Router
 from open_transcribe.security.auth import BearerAuthMiddleware
 from open_transcribe.service import TranscriptionService
 from open_transcribe.settings import Settings, get_settings
-from open_transcribe.sources.resolver import SourceBroker
+from open_transcribe.sources.resolver import SourceBroker, TemporaryFileFactory
 
 
-def create_service(settings: Settings) -> TranscriptionService:
+def create_service(
+    settings: Settings,
+    policy: TranscriptionPolicy | None = None,
+    workspace: TemporaryFileFactory | None = None,
+) -> TranscriptionService:
+    """Build the one service both transports share.
+
+    The policy is threaded through the router, the broker, and the service itself so that every
+    place capable of reaching a provider consults the same authorization object.
+    """
+    effective = policy or TranscriptionPolicy.unrestricted()
     registry = ProviderRegistry.from_settings(settings)
     return TranscriptionService(
         settings,
         registry,
-        Router(registry, settings),
-        SourceBroker(settings),
+        Router(registry, settings, policy=effective),
+        SourceBroker(settings, policy=effective, workspace=workspace),
         create_result_store(settings),
+        policy=effective,
     )
 
 
-def create_server(config: Settings) -> FastMCP:
+def create_server(
+    config: Settings,
+    policy: TranscriptionPolicy | None = None,
+    workspace: TemporaryFileFactory | None = None,
+) -> FastMCP:
     configure_logging()
-    service = create_service(config)
+    service = create_service(config, policy, workspace)
     mcp = FastMCP("OpenTranscribe")
     logger = structlog.get_logger()
 
@@ -134,6 +151,8 @@ def create_server(config: Settings) -> FastMCP:
 
 def create_app(settings: Settings | None = None) -> Any:
     config = settings or get_settings()
+    if config.transport != "http":
+        raise ValueError("create_app builds the HTTP application; set transport to 'http'")
     mcp = create_server(config)
     token = (
         config.security.bearer_token.get_secret_value() if config.security.bearer_token else None
@@ -148,10 +167,20 @@ def create_app(settings: Settings | None = None) -> Any:
     return mcp.http_app(path="/mcp", stateless_http=True, middleware=middleware)
 
 
-def main() -> None:
-    settings = get_settings()
+def serve_http(settings: Settings) -> None:
     uvicorn.run(create_app(settings), host=settings.host, port=settings.port, workers=1)
 
 
+def main(argv: Sequence[str] | None = None) -> int:
+    """Dispatch the command line.
+
+    Invoking the entry point with no arguments keeps its existing behaviour: an authenticated,
+    stateless HTTP deployment configured from the environment. The subcommands are additive.
+    """
+    from open_transcribe.cli import run_cli
+
+    return run_cli(argv)
+
+
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

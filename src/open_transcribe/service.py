@@ -12,6 +12,7 @@ from open_transcribe.domain.transcript import (
     StoredTranscriptionResult,
     TranscriptChunk,
 )
+from open_transcribe.policy import TranscriptionPolicy
 from open_transcribe.providers.registry import ProviderRegistry
 from open_transcribe.result_store.base import ResultStore
 from open_transcribe.routing.router import RouteCandidate, Router
@@ -27,12 +28,14 @@ class TranscriptionService:
         router: Router,
         source_broker: SourceBroker,
         result_store: ResultStore,
+        policy: TranscriptionPolicy | None = None,
     ) -> None:
         self.settings = settings
         self.registry = registry
         self.router = router
         self.source_broker = source_broker
         self.result_store = result_store
+        self.policy = policy or TranscriptionPolicy.unrestricted()
 
     async def transcribe(
         self, request: TranscribeAudioRequest
@@ -43,6 +46,10 @@ class TranscriptionService:
         transcript = None
         selected: RouteCandidate | None = None
         for candidate in candidates:
+            # Re-checked per attempt rather than once per request: a fallback candidate is a new
+            # recipient of the audio, and the router's filtering is not the only thing standing
+            # between an unauthorized provider and the user's recording.
+            self.policy.require_provider(candidate.model.provider, model=candidate.model.model)
             provider = self.registry.get_provider(candidate.model.provider)
             # Capabilities are bound per candidate, so a fallback model is asked for what it can
             # actually do rather than for whatever the first candidate supported.

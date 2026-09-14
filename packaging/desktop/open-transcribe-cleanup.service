@@ -1,0 +1,18 @@
+[Unit]
+Description=Delete expired OpenTranscribe temporary audio
+Documentation=https://fbossiere.github.io/open-transcribe-mcp/desktop/
+# Installed per user, and only as part of the reviewed temporary-processing opt-in. It performs
+# no network access and deletes only verified, expired files this installation owns.
+ConditionPathIsDirectory=%t/open-transcribe-mcp
+
+[Service]
+Type=oneshot
+# If the packaged executable is gone, the unit succeeds and does nothing, so a package removal
+# never leaves a unit failing in a loop.
+ExecStart=/bin/sh -c 'test -x /opt/open-transcribe-assistant/open-transcribe-mcp || exit 0; exec /opt/open-transcribe-assistant/open-transcribe-mcp cleanup-temporary-audio --config "${XDG_CONFIG_HOME:-$HOME/.config}/open-transcribe-mcp/desktop/config.toml"'
+PrivateNetwork=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%t/open-transcribe-mcp
+PrivateTmp=true

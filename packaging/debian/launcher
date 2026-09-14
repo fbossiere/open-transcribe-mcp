@@ -1,0 +1,4 @@
+#!/bin/sh
+# The only OpenTranscribe executable on PATH. The engine stays beside it in /opt and is launched
+# by an MCP client using its absolute path, so it never shadows a CLI installation in $HOME.
+exec /opt/open-transcribe-assistant/open-transcribe-assistant "$@"

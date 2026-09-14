@@ -30,6 +30,23 @@ dependencies = [
 
 [project.optional-dependencies]
 s3 = ["boto3>=1.40,<2"]
+# Managed desktop mode: what the *engine* needs to resolve credential references in a user
+# session. It is imported lazily, so the hosted deployment and the container never load it.
+managed = [
+  "keyring>=25.6,<26",
+  "SecretStorage>=3.3,<4",
+  "jeepney>=0.9,<1",
+]
+# OpenTranscribe Setup. Qt stays out of the minimal server installation and the container image.
+desktop = [
+  "open-transcribe-mcp[managed]",
+  "PySide6-Essentials>=6.9,<7",
+  "tomli-w>=1.2,<2",
+]
+packaging = [
+  "cyclonedx-bom>=7,<8",
+  "pyinstaller>=6.11,<7",
+]
 dev = [
   "coverage[toml]>=7.10,<8",
   "mkdocs>=1.6,<2",
@@ -45,6 +62,11 @@ dev = [
 
 [project.scripts]
 open-transcribe-mcp = "open_transcribe.server:main"
+
+[project.gui-scripts]
+# Present for development installs of the `desktop` extra. The Debian package installs its own
+# launcher and does not rely on this entry point.
+open-transcribe-assistant = "open_transcribe.desktop.gui.app:main"
 
 [project.urls]
 Homepage = "https://github.com/fbossiere/open-transcribe-mcp"
@@ -63,6 +85,7 @@ addopts = "--strict-markers --strict-config -ra"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
+  "desktop: desktop assistant behaviour that needs no display",
   "integration_microsoft: live Microsoft integration test",
   "integration_elevenlabs: live ElevenLabs integration test",
   "integration_groq: live Groq integration test",
@@ -72,6 +95,12 @@ markers = [
 [tool.coverage.run]
 branch = true
 source = ["open_transcribe"]
+omit = [
+  # The interface is covered by tests/desktop/test_gui.py, which needs a Qt platform plugin and
+  # skips without one. Including it would make the coverage gate depend on whether the runner
+  # happens to have Qt's system libraries, so it is measured by those tests, not by this gate.
+  "*/open_transcribe/desktop/gui/*",
+]
 
 [tool.coverage.report]
 fail_under = 91
@@ -99,5 +128,5 @@ warn_unreachable = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["boto3", "botocore.*"]
+module = ["boto3", "botocore.*", "keyring", "keyring.*", "tomli_w", "PySide6.*"]
 ignore_missing_imports = true

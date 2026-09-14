@@ -39,6 +39,18 @@ OpenTranscribe keeps the integration boundary stable: the recorder supplies an a
 - disabled-by-default retention; optional memory or S3-compatible temporary result storage
 - Docker, production-oriented Scaleway Serverless Containers Terraform, tests, and GitHub Actions CI
 
+## On the Linux desktop
+
+An optional Debian package, **OpenTranscribe Setup**, bundles the Python runtime, the engine, and
+a native setup application. Install it, add a provider key, and connect a local MCP client — no
+Python, no `uv`, no configuration files. The engine then runs as one client-owned STDIO process
+that opens no network socket.
+
+The hosted and command-line paths below are unaffected by it. See
+[OpenTranscribe Setup on Linux](docs/desktop.md); its release evidence lives in
+[docs/desktop-acceptance.md](docs/desktop-acceptance.md), where every scenario starts at *Not
+tested*.
+
 ## Ten-minute quickstart
 
 Requirements: Python 3.12 and [uv](https://docs.astral.sh/uv/), or Docker.
@@ -159,6 +171,8 @@ Application controls do not replace network policy. Internet-facing operators sh
 
 Provider prices, APIs, and capabilities change. The checked-in metadata is informational, not a contractual quote.
 
+The desktop package targets Ubuntu 24.04 LTS on amd64 and is not yet supported on any other release, desktop, or architecture. No MCP client has a recorded end-to-end registration run, so OpenTranscribe Setup presents automatic registration as untested and verifies it by reading the registration back.
+
 ## Recording consent
 
 > OpenTranscribe processes audio supplied by the operator. Recording and transcribing people may be subject to consent, privacy, employment, telecommunications, or data-protection laws. Operators are responsible for ensuring they have the necessary rights and consent.
@@ -173,6 +187,8 @@ The canonical documentation site is [fbossiere.github.io/open-transcribe-mcp](ht
 - [Providers and capabilities](docs/providers.md)
 - [Security model](docs/security.md)
 - [Privacy and retention](docs/privacy.md)
+- [OpenTranscribe Setup on Linux](docs/desktop.md)
+- [Desktop release acceptance](docs/desktop-acceptance.md)
 - [Scaleway deployment](docs/deploy-scaleway.md)
 - [Release process](docs/releasing.md)
 - [Tutorial: Plaud on Ubuntu, step by step](docs/tutorials/plaud-ubuntu.md) ([PDF](docs/tutorials/plaud-ubuntu.pdf))

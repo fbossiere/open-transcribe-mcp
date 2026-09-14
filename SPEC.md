@@ -3086,5 +3086,86 @@ GitHub stars are useful for visibility but should not be treated as the main pro
 
 ---
 
+## Addendum A - Linux desktop distribution and local transport
+
+**Status:** adopted as a narrow addendum to this specification. It adds a native configuration
+surface and a second transport. It does not redefine the server architecture, and it does not
+alter the MCP tool contract.
+
+### A.1 Relationship to section 2.5
+
+Section 2.5 excludes a first-party end-user **web** UI, and that exclusion stands. The MCP
+interface remains the product interface: nothing in the desktop distribution is reachable as an
+MCP tool, and no transcription capability is exposed anywhere except through the five existing
+tools.
+
+What this addendum adds is a **native configuration surface** - an optional desktop application
+whose whole job is to configure and diagnose the service - and an explicit **local STDIO
+transport** for the engine it configures. A user who never installs the package is unaffected.
+
+### A.2 Transports and their authentication boundaries
+
+| Transport | Deployment | Authentication |
+|---|---|---|
+| Streamable HTTP, stateless | Hosted, container, existing CLI | Unchanged: bearer authentication, and unauthenticated production remains refused |
+| STDIO | One local process owned by an MCP client | The local process and session boundary; a network bearer token is neither needed nor accepted |
+
+Startup validation is transport-aware: `Settings.transport` selects which rules apply. STDIO is a
+separate case, never a relaxation of the HTTP case. The desktop distribution never starts HTTP as
+a fallback and never inherits the `0.0.0.0` binding into a user session.
+
+Both transports construct the same services, router, source broker, and provider adapters, and
+expose exactly `transcribe_audio`, `get_transcript_chunk`, `delete_transcript`,
+`list_transcription_models`, and `estimate_transcription_cost`.
+
+Audio inputs remain authorized HTTPS URLs under STDIO. The local transport introduces no local
+filesystem path, no file resource, and no test-only bypass.
+
+### A.3 Managed configuration is a separate mode
+
+| Mode | Configuration source | Secret source |
+|---|---|---|
+| CLI, container, hosted | `OT_*` and the documented environment-file behaviour, unchanged | Existing deployment secret injection |
+| Managed desktop | The file named by `--config`, plus packaged defaults | Secret Service references resolved inside the engine |
+
+Managed mode ignores ambient `OT_*` variables, a working-directory `.env`, and unrelated shell
+configuration, by removing environment precedence at the settings-source level rather than by
+clearing variables at call sites. Without an explicit `--config`, the existing CLI does not
+discover desktop settings.
+
+### A.4 Authorization is enforced by the engine
+
+Managed privacy rules are engine-enforced policy, not interface state. `TranscriptionPolicy` is
+consulted by the router before ranking, by the service before every provider attempt, and by the
+source broker before any download:
+
+- A credential in the keyring does not enable a provider. Only explicit enablement does.
+- Cross-provider fallback is a separate permission, off by default. With it off, fallback stays
+  inside the provider the request selected.
+- Temporary audio processing is a separate permission, off by default. A relay-only request is
+  refused before the source is contacted, so it costs neither bytes nor a provider call.
+
+Two normalized error codes carry these outcomes: `PROVIDER_NOT_ENABLED` and
+`TEMPORARY_AUDIO_NOT_PERMITTED`.
+
+### A.5 What the desktop distribution does not become
+
+It configures and diagnoses a transcription service. It is not an audio library, a transcription
+workspace, a recorder, a summarizer, or an integration hub. The optional public sample is a
+bounded onboarding check the user can skip, not a feature.
+
+Deferred deliberately: remote-server provisioning, a graphical path for S3 storage or arbitrary
+provider endpoints, audio upload or microphone access, transcript history and exports, an APT
+repository, automatic updates, a tray application, and any permanent background transcription
+service.
+
+### A.6 Release gates
+
+The desktop package is governed by `docs/desktop-acceptance.md`. Every scenario there starts at
+*Not tested*, automated tests and real runs are recorded as different kinds of evidence, and no
+client may be advertised as supported without a recorded end-to-end run.
+
+---
+
 _End of specification._
 

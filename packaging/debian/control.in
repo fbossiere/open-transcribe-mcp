@@ -1,0 +1,21 @@
+Package: open-transcribe-assistant
+Version: @VERSION@
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: OpenTranscribe contributors <noreply@github.com>
+Homepage: https://github.com/fbossiere/open-transcribe-mcp
+Installed-Size: @INSTALLED_SIZE@
+Depends: @SHLIB_DEPENDS@, ca-certificates
+Recommends: gnome-keyring | kwalletmanager, xdg-utils
+Description: OpenTranscribe Setup, a configuration assistant for speech-to-text over MCP
+ OpenTranscribe Setup configures the OpenTranscribe transcription engine and connects it to
+ a local MCP client. It bundles its own Python runtime and the engine, so no development tools
+ are needed to install or run it.
+ .
+ Audio is sent to the transcription provider you choose, using your own provider key, which is
+ stored in your session keyring. The transcript is returned to your assistant. No transcript
+ history is kept by default, and no OpenTranscribe account is required.
+ .
+ A working Secret Service keyring in a normal graphical session is a prerequisite for setup.
+ Recommending gnome-keyring does not by itself prove that a session exposes a usable keyring.
