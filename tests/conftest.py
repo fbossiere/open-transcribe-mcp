@@ -9,6 +9,22 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     """Point the end-to-end suite at a deployed instance; each option has an OT_E2E_* fallback."""
     group = parser.getgroup("open-transcribe end-to-end")
     group.addoption(
+        "--live-groq",
+        action="store_true",
+        help="Run the opt-in Groq tests with one real transcription of the synthetic fixture.",
+    )
+    group.addoption(
+        "--live-env-file",
+        default=".env.local",
+        help="Credential file read only by --live-groq (default: .env.local).",
+    )
+    group.addoption(
+        "--groq-model",
+        choices=("whisper-large-v3", "whisper-large-v3-turbo"),
+        default="whisper-large-v3-turbo",
+        help="Model used by --live-groq (default: whisper-large-v3-turbo).",
+    )
+    group.addoption(
         "--deployment-url",
         default=None,
         help="Deployed instance URL, in its base, /mcp, /healthz or /readyz form "
