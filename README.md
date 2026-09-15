@@ -165,7 +165,7 @@ Read [SECURITY.md](SECURITY.md), [the threat model](docs/security.md), and [the 
 
 ## Known limitations
 
-OpenTranscribe v1.0 targets self-hosted, single-tenant installations. Provider feature parity is deliberately not guaranteed; capability negotiation exposes differences instead of hiding them. URL ingestion is the only remote input type. Synchronous provider limits still apply. OIDC and asynchronous jobs are planned for later releases. The memory store is neither durable nor horizontally scalable. S3 lookups prioritize a simple deployment contract over very-large-bucket indexing; dedicate the result prefix and enforce lifecycle deletion.
+OpenTranscribe currently targets self-hosted, single-tenant installations. Provider feature parity is deliberately not guaranteed; capability negotiation exposes differences instead of hiding them. URL ingestion is the only remote input type. Synchronous provider limits still apply. OIDC and asynchronous jobs are planned for later releases. The memory store is neither durable nor horizontally scalable. S3 lookups prioritize a simple deployment contract over very-large-bucket indexing; dedicate the result prefix and enforce lifecycle deletion.
 
 Application controls do not replace network policy. Internet-facing operators should still combine exact source-host allow-listing with egress firewall rules.
 
