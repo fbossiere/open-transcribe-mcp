@@ -14,6 +14,7 @@ from open_transcribe.desktop.clients.base import ClientAdapter, SupportStatus
 from open_transcribe.desktop.clients.command import CommandLineAdapter
 from open_transcribe.desktop.clients.json_store import JsonMcpServersAdapter
 from open_transcribe.desktop.clients.manual import ManualRegistrationAdapter
+from open_transcribe.desktop.clients.toml_store import TomlMcpServersAdapter
 from open_transcribe.desktop.errors import DesktopError, DesktopErrorCode
 
 MATRIX_FILENAME = "clients.toml"
@@ -66,6 +67,18 @@ def _build(entry: dict[str, Any], env: Mapping[str, str]) -> ClientAdapter | Non
             display_name=str(entry["display_name"]),
             config_path=path,
             key_path=tuple(str(item) for item in entry.get("key_path", ("mcpServers",))),
+            support_status=status,
+            restart_required=restart,
+        )
+    if kind == "toml":
+        path = _first_existing(entry.get("config_paths", []), env)
+        if path is None:
+            return None
+        return TomlMcpServersAdapter(
+            adapter_id=str(entry["id"]),
+            display_name=str(entry["display_name"]),
+            config_path=path,
+            table_path=tuple(str(item) for item in entry.get("table_path", ("mcp_servers",))),
             support_status=status,
             restart_required=restart,
         )

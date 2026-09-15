@@ -82,7 +82,11 @@ Six short steps, each with one main action:
    which assistants were found. An assistant that is not detected is not a blocker.
 3. **Choose a transcription provider** — the provider, the model, the key, the capabilities that
    model actually has, the pricing date, and the privacy permissions that model needs.
-4. **Connect your assistant** — the client to register with. Nothing is changed yet.
+4. **Choose the app that will use OpenTranscribe** — the client to register with. Nothing
+   is changed yet. Claude Desktop, Claude Code, the ChatGPT app and Codex CLI are offered
+   when their configuration is present; every other client gets the manual path. The
+   ChatGPT app reads the Codex host's `~/.codex/config.toml`, so those two entries write
+   to the same file and only the `[mcp_servers.open-transcribe]` table in it.
 5. **Review and enable** — the exact providers that may receive audio, the model, whether a second
    provider may be tried, whether temporary audio files are allowed, and what will change locally.
    **Enable connection** authorizes exactly that list.
