@@ -21,6 +21,13 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Operational logging now goes to stderr with an explicit stream and logger factory. stdout belongs to the MCP protocol under the STDIO transport, and structlog's default print logger would have written to it.
 - `create_service` and `create_server` accept an authorization policy and a temporary-file factory. Both default to the existing unrestricted behaviour, so the hosted, container, and CLI deployments are unchanged.
 - The Python package gains a `managed` extra (Secret Service support for the engine) and a `desktop` extra (Qt and the TOML writer for Setup). Neither is pulled in by the minimal server installation or the container image, and both are imported lazily.
+- **A stated visual system for Setup.** One palette per light and dark preference, applied over the Fusion style so a desktop theme cannot leave a control drawn in a colour nothing here chose, with the product mark, a segmented step indicator, a separated footer, and cards for options and results. Severity is still carried by a text mark as well as by colour. The step that asks which application to register with is now titled for what it does — *Choose the app that will use OpenTranscribe* — and says that OpenTranscribe registers itself as an MCP server in the application picked.
+
+### Fixed
+
+- **Setup could not be completed.** *Enable connection* and *Finish* were prepared before the window switched to their step, and switching steps reset the primary action to disabled, so both stayed unusable whatever the chosen client. A step now records its readiness and the window reads it when it switches pages.
+- The setup window reserved the height of its longest step on every step, leaving short steps scrolling inside a mostly empty page, and the returning-user status page clipped horizontally at the smallest supported window size. The clipping check now exercises each page while it is shown, not only the one that happens to be current.
+- Styling a check box or a radio button through the stylesheet made its indicator disappear, so options were readable but their selected state was not. Both are left to the style that draws them.
 
 ### Added
 

@@ -5,9 +5,10 @@ matter are announced so a screen reader user hears them.
 """
 
 from collections.abc import Callable
+from typing import override
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QAccessible, QAccessibleEvent
+from PySide6.QtCore import QPoint, QRect, QSize, Qt
+from PySide6.QtGui import QAccessible, QAccessibleEvent, QResizeEvent
 from PySide6.QtWidgets import (
     QCheckBox,
     QHBoxLayout,
@@ -15,6 +16,8 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QProgressBar,
     QPushButton,
+    QScrollArea,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -34,16 +37,101 @@ def announce(widget: QWidget, message: str) -> None:
     QAccessible.updateAccessibility(QAccessibleEvent(widget, QAccessible.Event.Alert))
 
 
+class WrappedLabel(QLabel):
+    """A paragraph that wraps to the width it is given and grows to the height it needs."""
+
+    def __init__(self, text: str = "") -> None:
+        super().__init__(text)
+        self.setWordWrap(True)
+
+    @override
+    def minimumSizeHint(self) -> QSize:
+        # A paragraph must be free to wrap to the available width. Its preferred unbroken width
+        # is not a minimum, and must never widen the page it sits on.
+        hint = super().minimumSizeHint()
+        hint.setWidth(0)
+        return hint
+
+    @override
+    def setText(self, text: str) -> None:
+        super().setText(text)
+        self._fit_height()
+
+    @override
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        self._fit_height()
+
+    def _fit_height(self) -> None:
+        # Qt's default minimum would let a wrapped label shrink to one line and clip the rest.
+        # Inside a scroll area there is no reason to crop: let the page grow instead.
+        self.setMinimumHeight(max(0, self.heightForWidth(self.width())))
+
+
+class FormScrollArea(QScrollArea):
+    """Bring the whole focused control into view, not just its text cursor."""
+
+    @override
+    def ensureWidgetVisible(
+        self,
+        childWidget: QWidget,
+        xmargin: int = 50,
+        ymargin: int = 50,
+    ) -> None:
+        super().ensureWidgetVisible(childWidget, xmargin, ymargin)
+        page = self.widget()
+        if page is None or not page.isAncestorOf(childWidget):
+            return
+        viewport = self.viewport()
+        bounds = QRect(childWidget.mapTo(viewport, QPoint()), childWidget.size())
+        if bounds.height() > viewport.height():
+            return
+        padding = min(ymargin, (viewport.height() - bounds.height()) // 2)
+        bar = self.verticalScrollBar()
+        if bounds.top() < 0:
+            bar.setValue(bar.value() + bounds.top() - padding)
+        elif bounds.bottom() >= viewport.height():
+            bar.setValue(bar.value() + bounds.bottom() - viewport.height() + 1 + padding)
+
+    @override
+    def focusNextPrevChild(self, next: bool) -> bool:
+        moved = super().focusNextPrevChild(next)
+        focused = self.focusWidget()
+        if moved and focused is not None and focused.hasFocus():
+            self.ensureWidgetVisible(focused)
+        return moved
+
+
+class PageStack(QStackedWidget):
+    """A stack that asks for the size of the page on show, not of the tallest page it holds.
+
+    A stacked widget reserves room for every page at once, which would leave a short step
+    scrolling inside the height the longest step needs.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.currentChanged.connect(lambda _: self.updateGeometry())
+
+    @override
+    def sizeHint(self) -> QSize:
+        current = self.currentWidget()
+        return current.sizeHint() if current is not None else super().sizeHint()
+
+    @override
+    def minimumSizeHint(self) -> QSize:
+        current = self.currentWidget()
+        return current.minimumSizeHint() if current is not None else super().minimumSizeHint()
+
+
 def body_label(text: str) -> QLabel:
-    label = QLabel(text)
-    label.setWordWrap(True)
+    label = WrappedLabel(text)
     label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
     return label
 
 
 def heading_label(text: str, level: int = 1) -> QLabel:
-    label = QLabel(text)
-    label.setWordWrap(True)
+    label = WrappedLabel(text)
     label.setProperty("heading", level)
     label.setAccessibleName(text)
     return label
@@ -60,8 +148,11 @@ class StatusRow(QWidget):
         action: tuple[str, Callable[[], None]] | None = None,
     ) -> None:
         super().__init__()
+        self.setObjectName("statusRow")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 4, 0, 4)
+        layout.setContentsMargins(14, 10, 14, 10)
+        layout.setSpacing(12)
         mark = QLabel(SEVERITY_MARK.get(severity, "•"))
         mark.setProperty("severity", severity)
         mark.setAccessibleName(severity)

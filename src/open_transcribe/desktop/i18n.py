@@ -80,8 +80,11 @@ _CATALOGUE: dict[str, dict[str, str]] = {
         "check.unreachable": "The provider could not be reached.",
         "check.unavailable": "The provider returned an error.",
         # Step 4 — Client
-        "client.title": "Connect your assistant",
-        "client.subtitle": "Nothing is changed in your assistant until you review the setup.",
+        "client.title": "Choose the app that will use OpenTranscribe",
+        "client.subtitle": (
+            "OpenTranscribe registers itself as an MCP server in the app you pick. "
+            "Nothing is changed until you review the setup."
+        ),
         "client.untested": (
             "This build has not been tested with {client}. OpenTranscribe will register the "
             "server and then read it back to confirm."
@@ -282,8 +285,11 @@ _CATALOGUE: dict[str, dict[str, str]] = {
         ),
         "check.unreachable": "Le fournisseur n'a pas pu être contacté.",
         "check.unavailable": "Le fournisseur a renvoyé une erreur.",
-        "client.title": "Connecter votre assistant",
-        "client.subtitle": "Rien n'est modifié tant que vous n'avez pas validé la configuration.",
+        "client.title": "Choisissez l'application qui utilisera OpenTranscribe",
+        "client.subtitle": (
+            "OpenTranscribe s'enregistre comme serveur MCP dans l'application choisie. "
+            "Rien n'est modifié tant que vous n'avez pas validé la configuration."
+        ),
         "client.untested": (
             "Cette version n'a pas été testée avec {client}. OpenTranscribe enregistrera le "
             "serveur puis le relira pour confirmer."

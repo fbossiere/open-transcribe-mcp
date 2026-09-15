@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QGroupBox,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
@@ -49,9 +50,22 @@ class Step(QWidget):
     def __init__(self, translate: Translator) -> None:
         super().__init__()
         self.t = translate
+        self._ready = False
         self.column = QVBoxLayout(self)
         self.column.setContentsMargins(0, 0, 0, 0)
         self.column.setSpacing(12)
+
+    def set_ready(self, value: bool) -> None:
+        """Record readiness as well as announce it.
+
+        A step can be prepared before it is shown, so the window reads the recorded value when
+        it switches pages instead of relying on having heard the signal.
+        """
+        self._ready = value
+        self.ready.emit(value)
+
+    def is_ready(self) -> bool:
+        return self._ready
 
     def action_label(self) -> str:
         return self.t("nav.continue")
@@ -77,7 +91,7 @@ class WelcomeStep(Step):
         return self.t("welcome.action")
 
     def activate(self) -> None:
-        self.ready.emit(True)
+        self.set_ready(True)
 
 
 class ChecksStep(Step):
@@ -116,7 +130,7 @@ class ChecksStep(Step):
             if check.check_id in self._blocking and check.severity.value == "error":
                 blocked = True
         # An undetected client is not a blocker: the manual path always exists.
-        self.ready.emit(not blocked)
+        self.set_ready(not blocked)
         announce(self, report.worst.value)
 
 
@@ -253,7 +267,7 @@ class ProviderStep(Step):
             self.endpoint_error.hide()
             self.model_box.clear()
             self.capabilities.setText("")
-            self.ready.emit(False)
+            self.set_ready(False)
             return
         needs_endpoint = any(field.kind == "https_url" for field in descriptor.fields)
         for widget in (self.endpoint_label, self.endpoint):
@@ -309,7 +323,7 @@ class ProviderStep(Step):
         )
         if self.endpoint.isVisible():
             valid = valid and self.endpoint.text().strip().startswith("https://")
-        self.ready.emit(valid)
+        self.set_ready(valid)
 
     def focus_first_invalid(self) -> None:
         if self.descriptor() is None:
@@ -362,18 +376,26 @@ class ClientStep(Step):
         self._group = QButtonGroup(self)
         self._group.setExclusive(True)
         for index, adapter in enumerate(adapters):
+            # One card per client, so a note belongs visibly to the option it qualifies.
+            card = QFrame()
+            card.setObjectName("card")
+            option = QVBoxLayout(card)
+            option.setContentsMargins(14, 10, 14, 12)
+            option.setSpacing(4)
             button = QRadioButton(adapter.display_name)
             button.setAccessibleName(adapter.display_name)
             self._group.addButton(button, index)
-            self.column.addWidget(button)
+            option.addWidget(button)
+            note_text = ""
             if adapter.support_status is SupportStatus.UNTESTED:
-                note = body_label(self.t("client.untested", client=adapter.display_name))
+                note_text = self.t("client.untested", client=adapter.display_name)
+            elif adapter.support_status is SupportStatus.MANUAL_ONLY:
+                note_text = self.t("client.manual")
+            if note_text:
+                note = body_label(note_text)
                 note.setProperty("muted", True)
-                self.column.addWidget(note)
-            if adapter.support_status is SupportStatus.MANUAL_ONLY:
-                note = body_label(self.t("client.manual"))
-                note.setProperty("muted", True)
-                self.column.addWidget(note)
+                option.addWidget(note)
+            self.column.addWidget(card)
             if index == 0:
                 button.setChecked(True)
         self.takeover = QCheckBox(self.t("client.takeover"))
@@ -390,7 +412,7 @@ class ClientStep(Step):
         return self.t("client.action")
 
     def activate(self) -> None:
-        self.ready.emit(bool(self._adapters))
+        self.set_ready(bool(self._adapters))
 
     def selected(self) -> ClientAdapter | None:
         index = self._group.checkedId()
@@ -414,6 +436,9 @@ class ReviewStep(Step):
         card = QFrame()
         card.setObjectName("card")
         self._grid = QGridLayout(card)
+        self._grid.setContentsMargins(16, 14, 16, 14)
+        self._grid.setHorizontalSpacing(20)
+        self._grid.setVerticalSpacing(8)
         self._grid.setColumnStretch(1, 1)
         self.column.addWidget(card)
         self.flow = body_label(self.t("review.flow"))
@@ -425,12 +450,17 @@ class ReviewStep(Step):
         self.changes = body_label("")
         self.changes.setProperty("muted", True)
         self.changes.hide()
-        self.details_button = QPushButton(self.t("review.changes"))
+        self.details_button = QPushButton(f"▸ {self.t('review.changes')}")
+        self.details_button.setObjectName("disclosure")
         self.details_button.setCheckable(True)
         self.details_button.toggled.connect(self.changes.setVisible)
-        self.column.addWidget(self.details_button)
+        self.details_button.toggled.connect(self._label_disclosure)
+        self.column.addWidget(self.details_button, 0, Qt.AlignmentFlag.AlignLeft)
         self.column.addWidget(self.changes)
         self.column.addStretch(1)
+
+    def _label_disclosure(self, shown: bool) -> None:
+        self.details_button.setText(f"{'▾' if shown else '▸'} {self.t('review.changes')}")
 
     def action_label(self) -> str:
         return self.t("review.action")
@@ -454,7 +484,9 @@ class ReviewStep(Step):
             (self.t("review.keys"), self.t("review.keys.value")),
         ]
         for row, (name, value) in enumerate(rows):
-            self._grid.addWidget(QLabel(name), row, 0)
+            caption = QLabel(name)
+            caption.setProperty("muted", True)
+            self._grid.addWidget(caption, row, 0)
             self._grid.addWidget(body_label(value), row, 1)
 
         if model is not None and model.supports_url_input:
@@ -474,7 +506,7 @@ class ReviewStep(Step):
         self.changes.setText(
             "\n".join([*credentials, f"config: {plan.config.installation_id}", *actions])
         )
-        self.ready.emit(True)
+        self.set_ready(True)
 
 
 class FinishStep(Step):
@@ -495,11 +527,11 @@ class FinishStep(Step):
         self.column.addWidget(self.confirm)
 
         self.column.addWidget(heading_label(self.t("finish.prompt_label"), level=2))
-        prompt_row = QVBoxLayout()
+        prompt_row = QHBoxLayout()
         self.prompt = QLineEdit(self.t("finish.prompt"))
         self.prompt.setReadOnly(True)
         self.prompt.setAccessibleName(self.t("finish.prompt_label"))
-        prompt_row.addWidget(self.prompt)
+        prompt_row.addWidget(self.prompt, 1)
         copy = QPushButton(self.t("finish.copy"))
         copy.clicked.connect(lambda: self.copy_prompt.emit(self.prompt.text()))
         prompt_row.addWidget(copy)
@@ -542,7 +574,7 @@ class FinishStep(Step):
                 StatusRow(outcome.failure.message, "error", outcome.failure.recovery)
             )
         self.sample_button.setEnabled(engine_ok)
-        self.ready.emit(True)
+        self.set_ready(True)
 
     def show_sample_plan(self, text: str) -> None:
         self.sample_cost.setText(text)
