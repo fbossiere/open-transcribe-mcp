@@ -4,6 +4,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-16
+
 ### Added
 
 - **A Linux desktop distribution.** `open-transcribe-assistant_<version>-<revision>_amd64.deb` bundles the Python runtime, the transcription engine, and a native PySide6 setup application, so a user can install from a file manager, add a provider key, and connect a local MCP client without Python, `uv`, or editing configuration files. The release publishes the package with a SHA-256 checksum, a CycloneDX SBOM, a provenance record, and a GitHub build attestation tied to the artifact digest and source revision. Documented in `docs/desktop.md`; its evidence sheet is `docs/desktop-acceptance.md`, where every scenario starts at *Not tested*.
@@ -15,22 +17,6 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Client registration adapters with a transactional apply.** Registration plans are reviewed before anything changes, credentials are written under fresh references so a failed key replacement preserves the working one, the exact packaged engine is verified against MCP before a client is told to launch it, and every phase records its intent and its observed result in a recovery journal. A registration this installation did not create is a conflict, never something to overwrite, and takeover is always explicit. `config/desktop/clients.toml` carries a per-client `support_status`; every shipped entry is `untested` until a real run is recorded.
 - English and French interface strings, complete in both languages and never assembled by concatenation.
 - **The ChatGPT desktop app as a registration target.** It reads the Codex host's `~/.codex/config.toml`, so OpenTranscribe writes the `[mcp_servers.open-transcribe]` table there and leaves every other byte of that file — comments and formatting included — exactly as it found it. A conflicting entry this installation did not create still blocks, and takeover is still explicit. The entry ships as `untested` like every other, and is offered only where that configuration directory already exists.
-
-### Changed
-
-- Operational logging now goes to stderr with an explicit stream and logger factory. stdout belongs to the MCP protocol under the STDIO transport, and structlog's default print logger would have written to it.
-- `create_service` and `create_server` accept an authorization policy and a temporary-file factory. Both default to the existing unrestricted behaviour, so the hosted, container, and CLI deployments are unchanged.
-- The Python package gains a `managed` extra (Secret Service support for the engine) and a `desktop` extra (Qt and the TOML writer for Setup). Neither is pulled in by the minimal server installation or the container image, and both are imported lazily.
-- **A stated visual system for Setup.** One palette per light and dark preference, applied over the Fusion style so a desktop theme cannot leave a control drawn in a colour nothing here chose, with the product mark, a segmented step indicator, a separated footer, and cards for options and results. Severity is still carried by a text mark as well as by colour. The step that asks which application to register with is now titled for what it does — *Choose the app that will use OpenTranscribe* — and says that OpenTranscribe registers itself as an MCP server in the application picked.
-
-### Fixed
-
-- **Setup could not be completed.** *Enable connection* and *Finish* were prepared before the window switched to their step, and switching steps reset the primary action to disabled, so both stayed unusable whatever the chosen client. A step now records its readiness and the window reads it when it switches pages.
-- The setup window reserved the height of its longest step on every step, leaving short steps scrolling inside a mostly empty page, and the returning-user status page clipped horizontally at the smallest supported window size. The clipping check now exercises each page while it is shown, not only the one that happens to be current.
-- Styling a check box or a radio button through the stylesheet made its indicator disappear, so options were readable but their selected state was not. Both are left to the style that draws them.
-
-### Added
-
 - Opt-in local Groq integration tests with explicit `.env.local` loading, one shared synthetic-audio transcription, canonical output and timestamp checks, and a network-free unsupported-diarization check.
 - An opt-in end-to-end suite, `tests/e2e`, that transcribes an audio file through a deployed instance and verifies the returned transcript. It takes the deployment URL in any of its Terraform output forms, negotiates the request against the models the deployment reports as configured, reads stored results back through the chunk tool and deletes them, and keeps transcript text out of its output. It skips unless a deployment URL is given, so an ordinary test run is unchanged.
 - The Scaleway deployment guide now states the IAM permission sets the Terraform key needs, with their project or organization scope, the console and `scw` procedures that create the application, policy, and key, and how the credentials reach Terraform and an S3 state backend. It also records that a bucket policy naming only the result-store application locks a non-owner deployment key out of the bucket.
@@ -38,15 +24,25 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - A step-by-step tutorial for transcribing a Plaud recorder on Ubuntu, written for readers who do not write code, published on the documentation site and as a PDF. `scripts/build_tutorial_pdf.py` renders the PDF from the same Markdown source.
 - `examples/plaud_transcribe.py`, which transcribes a local audio file by publishing it on a loopback-only server for the duration of one `proxy`-delivery request and writing a readable transcript beside the audio.
 
-### Security
-
-- Apply available Debian package fixes in a shared Docker base stage so the builder and runtime do not retain vulnerabilities patched after the pinned Python image was published.
-
 ### Changed
 
+- Operational logging now goes to stderr with an explicit stream and logger factory. stdout belongs to the MCP protocol under the STDIO transport, and structlog's default print logger would have written to it.
+- `create_service` and `create_server` accept an authorization policy and a temporary-file factory. Both default to the existing unrestricted behaviour, so the hosted, container, and CLI deployments are unchanged.
+- The Python package gains a `managed` extra (Secret Service support for the engine) and a `desktop` extra (Qt and the TOML writer for Setup). Neither is pulled in by the minimal server installation or the container image, and both are imported lazily.
+- **A stated visual system for Setup.** One palette per light and dark preference, applied over the Fusion style so a desktop theme cannot leave a control drawn in a colour nothing here chose, with the product mark, a segmented step indicator, a separated footer, and cards for options and results. Severity is still carried by a text mark as well as by colour. The step that asks which application to register with is now titled for what it does — *Choose the app that will use OpenTranscribe* — and says that OpenTranscribe registers itself as an MCP server in the application picked.
 - `diarization`, `timestamps`, and `transcript_style` are now unset by default instead of requesting diarization, segment timestamps, and clean output. An unset capability is bound to what the selected model supports and reported in the response metadata, so a request naming only its audio source now succeeds on a deployment whose only provider is Groq, which previously answered `UNSUPPORTED_CAPABILITY` to the tool's own defaults. A stated capability still excludes every model that cannot honour it. The quickstart example and `examples/transcribe.py` no longer state the three capabilities, so they run against any single configured provider.
 - `strict_capabilities=false` now downgrades under `provider=auto`. It only relaxed an explicitly named provider, so the flag was inert on the request shape that needs it most. The dropped capability is named in a `requested_capability_not_supported:*` warning, and the provider is asked only for what its model does, as it already was for a named provider.
 - The dev container installs TFLint 0.64.0 and Terragrunt 1.1.4 alongside the pinned Terraform.
+
+### Fixed
+
+- **Setup could not be completed.** *Enable connection* and *Finish* were prepared before the window switched to their step, and switching steps reset the primary action to disabled, so both stayed unusable whatever the chosen client. A step now records its readiness and the window reads it when it switches pages.
+- The setup window reserved the height of its longest step on every step, leaving short steps scrolling inside a mostly empty page, and the returning-user status page clipped horizontally at the smallest supported window size. The clipping check now exercises each page while it is shown, not only the one that happens to be current.
+- Styling a check box or a radio button through the stylesheet made its indicator disappear, so options were readable but their selected state was not. Both are left to the style that draws them.
+
+### Security
+
+- Apply available Debian package fixes in a shared Docker base stage so the builder and runtime do not retain vulnerabilities patched after the pinned Python image was published.
 
 ## [1.1.0] - 2026-09-07
 
@@ -119,7 +115,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Docker, Scaleway, provider, privacy, security, Plaud, and ChatGPT/Drive documentation;
 - unit, provider contract, security, and MCP transport tests plus release CI.
 
-[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v1.2.0
 [1.1.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v1.1.0
 [1.0.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v1.0.0
 [0.1.1]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v0.1.1
