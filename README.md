@@ -30,7 +30,7 @@ OpenTranscribe keeps the integration boundary stable: the recorder supplies an a
 
 ## What v1 ships
 
-- MCP Streamable HTTP at `/mcp`, with stateless operation and bearer authentication
+- MCP Streamable HTTP at `/mcp`, with stateless operation and bearer or external OIDC authentication
 - `transcribe_audio`, `list_transcription_models`, `estimate_transcription_cost`, `get_transcript_chunk`, and `delete_transcript`
 - Microsoft `MAI-Transcribe-2`, ElevenLabs `scribe-v2`, and Groq Whisper adapters
 - explicit capability negotiation, routing policies, retries, and observable fallbacks
@@ -58,16 +58,26 @@ Requirements: Python 3.12 and [uv](https://docs.astral.sh/uv/), or Docker.
 ```bash
 git clone https://github.com/fbossiere/open-transcribe-mcp.git
 cd open-transcribe-mcp
-cp .env.example .env
 ```
 
-Edit `.env` with one provider credential and a strong random MCP bearer token. For Microsoft:
+Create a private `.env` containing only the settings for your selected provider and a strong
+random MCP bearer token. For Microsoft:
 
 ```dotenv
+OT_ENVIRONMENT=prod
+OT_HOST=127.0.0.1
+OT_DEFAULT_PROVIDER=microsoft
+OT_DEFAULT_MODEL=MAI-Transcribe-2
 OT_MICROSOFT__ENDPOINT=https://YOUR-RESOURCE.cognitiveservices.azure.com
 OT_MICROSOFT__API_KEY=YOUR-KEY
+OT_SECURITY__AUTH_MODE=bearer
 OT_SECURITY__BEARER_TOKEN=YOUR-RANDOM-TOKEN
 ```
+
+Use the complete [Groq, ElevenLabs or multi-provider recipes](docs/configuration.md#choose-one-or-more-transcription-providers)
+for other services. Omit unused settings rather than leaving empty URLs or numbers from
+[.env.example](.env.example), which is a configuration inventory. Protect your file with
+`chmod 600 .env`.
 
 Start the server:
 
@@ -121,33 +131,110 @@ Provider choice does not alter the response contract. Set `provider` and `model`
 
 ## Docker
 
+Use the published image and the private environment file from the quickstart:
+
 ```bash
-docker build -t open-transcribe-mcp:1.2.1 .
-docker run --rm -p 8000:8000 \
-  -e OT_ENVIRONMENT=prod \
-  -e OT_MICROSOFT__ENDPOINT="https://YOUR-RESOURCE.cognitiveservices.azure.com" \
-  -e OT_MICROSOFT__API_KEY="YOUR-KEY" \
-  -e OT_SECURITY__AUTH_MODE=bearer \
-  -e OT_SECURITY__BEARER_TOKEN="YOUR-RANDOM-TOKEN" \
-  open-transcribe-mcp:1.2.1
+docker run --rm --env-file .env \
+  -e OT_ENVIRONMENT=prod -e OT_HOST=0.0.0.0 \
+  -p 127.0.0.1:8000:8000 \
+  ghcr.io/fbossiere/open-transcribe-mcp:1.2.1
 ```
 
-The published image is also available as `ghcr.io/fbossiere/open-transcribe-mcp:1.2.1`.
+This binds the host port locally; put an HTTPS proxy in front when hosting remotely. You can also
+build from source with `docker build -t open-transcribe-mcp:1.2.1 .`. Inject provider credentials
+at runtime. The image includes the `s3` extra, but result storage stays disabled unless configured.
 
-## Configuration
+## Deploy on Scaleway
 
-All settings use the `OT_` prefix and `__` for nesting. See [.env.example](.env.example). Provider credentials are server-side environment variables and are never accepted as MCP tool arguments.
+The reference [`infra/scaleway`](infra/scaleway/README.md) module provisions a private image
+registry, a Serverless Container with scale-to-zero (0–3 instances), HTTPS ingress and health
+probes. It can optionally add a TTL-bound result bucket and runtime identity.
 
-Temporary storage is disabled by default. `result_mode=stored` requires:
+1. Create a dedicated Scaleway Project and a deployment API key with the
+   [documented IAM permissions](docs/deploy-scaleway.md#1-create-the-deployment-api-key).
+   Supply `SCW_ACCESS_KEY` and `SCW_SECRET_KEY` to the deployment shell.
+2. Copy `infra/scaleway/terraform.tfvars.example` to `terraform.tfvars` in that directory.
+   Fill your project ID, provider keys, authentication settings and `image_tag = "1.2.1"`.
+   The template configures ElevenLabs and Groq; review the ElevenLabs retention choice before use.
+3. Bootstrap the registry, copy the public release image into it, then review and apply the
+   complete deployment. In `infra/scaleway`:
 
-```dotenv
-OT_RESULT_STORE__BACKEND=memory  # local/test only; use s3 for horizontally scaled production
-OT_RESULT_STORE__CURSOR_SECRET=ANOTHER-RANDOM-SECRET
-```
+   ```bash
+   terraform init
+   terraform apply -target=scaleway_registry_namespace.this
+   IMAGE_REFERENCE="$(terraform output -raw image_reference)"
+   REGISTRY_ENDPOINT="$(terraform output -raw registry_endpoint)"
+   printf '%s' "$SCW_SECRET_KEY" | docker login "${REGISTRY_ENDPOINT%%/*}" \
+     --username nologin --password-stdin
+   docker buildx imagetools create --tag "$IMAGE_REFERENCE" \
+     ghcr.io/fbossiere/open-transcribe-mcp:1.2.1
+   terraform plan -out=open-transcribe.tfplan
+   terraform apply open-transcribe.tfplan
+   terraform output -raw mcp_endpoint
+   ```
 
-For Scaleway Object Storage, install the `s3` extra and configure the S3 bucket/endpoint variables documented in [the deployment guide](docs/deploy-scaleway.md).
+4. Check `/healthz`, `/readyz`, MCP authentication and one short authorized transcription.
+   The [full Scaleway guide](docs/deploy-scaleway.md) covers release digest verification,
+   adoption of an existing deployment, OIDC setup, upgrades, rollback and result-store permissions.
 
-The reference Scaleway deployment is codified in [`infra/scaleway`](infra/scaleway/README.md). It provisions a private image registry, a scale-to-zero Serverless Container, health probes, HTTPS-only ingress, and an optional TTL-bound result bucket with a dedicated runtime identity.
+Bootstrap applies are for new infrastructure. Import an existing registry, namespace and
+container into state first to preserve their IDs and endpoint. Keep real `terraform.tfvars`,
+state and saved plans private: state and plans can contain secrets even when output is redacted.
+Publishing a release does not automatically update your Scaleway deployment.
+
+## Configuration and service combinations
+
+Choose the provider, MCP authentication and result storage independently. Provider keys stay
+on the server and are never accepted as tool arguments. See the full
+[configuration guide](docs/configuration.md) for complete environment/Terraform examples,
+settings precedence, key permissions and troubleshooting.
+
+| Transcription services | Configuration | Use and limitations |
+| --- | --- | --- |
+| Microsoft only | Microsoft endpoint + key; defaults `microsoft` / `MAI-Transcribe-2` | Diarization and clean/verbatim output |
+| ElevenLabs only | ElevenLabs key; defaults `elevenlabs` / `scribe-v2` | Diarization; choose eligible zero retention or explicitly accepted standard mode |
+| Groq only | Groq key; defaults `groq` / a Whisper model | Verbatim transcription; no speaker diarization |
+| Multiple providers | Each provider's credentials; one matching default pair | Requests can select any configured provider; compatibility is checked before ranking |
+
+`OT_DEFAULT_PROVIDER` and `OT_DEFAULT_MODEL` are preferences, not a provider allow-list. An
+explicit request can choose another configured model. Hosted requests permit transient fallback
+by default; use `allow_fallback=false` when audio must go to only one provider. To require French
+speaker turns, use `language=fr`, `diarization=true` and `strict_capabilities=true`; see the
+[Scribe recipe](docs/providers.md#french-conversations-with-speaker-turns). Groq cannot fulfill
+that requirement and is rejected rather than silently returning an undiarized transcript.
+
+| Authentication / storage | Required configuration | Combination rules |
+| --- | --- | --- |
+| HTTP bearer | MCP token; Terraform `auth_mode = "bearer"` | Works with any provider; token is separate from provider keys |
+| HTTP OIDC | Issuer, JWKS, service origin, scope and entitlement; `auth_mode = "oidc"` | Works with any provider; use an external identity provider such as Keycloak |
+| Managed desktop STDIO | Setup TOML and Secret Service keyring | Local process authentication; enable providers and privacy permissions in Setup |
+| No result store | Default `disabled`; Terraform `enable_result_store = false` | Inline output; stored or oversized auto results fail explicitly |
+| Temporary S3 results | Cursor secret; Terraform `enable_result_store = true` | Shared chunks across instances, TTL and deletion; extra IAM permissions required |
+| Memory results | `OT_RESULT_STORE__BACKEND=memory` + cursor secret | Local/test only; unsuitable for Scaleway cold starts or multiple instances |
+
+ElevenLabs requests default to zero retention, which needs an eligible Enterprise account.
+A standard account requires an explicit choice of `OT_ELEVENLABS__ZERO_RETENTION=false` after
+accepting provider-side retention. Disabling OpenTranscribe storage does not disable provider
+retention. See [configuration and retention](docs/configuration.md#result-storage-and-provider-retention-are-independent).
+
+For ordinary HTTP, `OT_*` environment variables override a working-directory `.env`. Terraform
+injects the non-secret and secret maps from your private `tfvars`, while enforcing production
+security settings. Managed desktop mode ignores ambient environment settings; a key in the
+keyring does not enable a provider by itself. Changing keys/defaults needs a restart or Terraform
+apply, not a new application image. A new application version needs a published image and a
+separate deployment update.
+
+## Publication and upgrades
+
+The [publication protocol](docs/releasing.md) is the maintainer runbook: semantic versioning,
+version coherence, local checks, release PR, signed tag from reviewed `main`, automated
+publication, artifact verification and recovery after partial failure.
+
+Git tags use `v1.2.1`; Python/MCP metadata and image tags use `1.2.1`. The workflow publishes
+PyPI, the MCP Registry, GHCR and the Linux package, then creates an immutable GitHub release
+with checksums and provenance. Each deployment chooses its own version and configuration.
+For Scaleway upgrades, copy the chosen release into the private registry, update `image_tag`
+(and the release digest when pinned), review the plan, apply and verify the endpoint.
 
 ## Security and privacy defaults
 
@@ -165,7 +252,7 @@ Read [SECURITY.md](SECURITY.md), [the threat model](docs/security.md), and [the 
 
 ## Known limitations
 
-OpenTranscribe currently targets self-hosted, single-tenant installations. Provider feature parity is deliberately not guaranteed; capability negotiation exposes differences instead of hiding them. URL ingestion is the only remote input type. Synchronous provider limits still apply. OIDC and asynchronous jobs are planned for later releases. The memory store is neither durable nor horizontally scalable. S3 lookups prioritize a simple deployment contract over very-large-bucket indexing; dedicate the result prefix and enforce lifecycle deletion.
+OpenTranscribe currently targets self-hosted, single-tenant installations. Provider feature parity is deliberately not guaranteed; capability negotiation exposes differences instead of hiding them. URL ingestion is the only remote input type. Synchronous provider limits still apply. OIDC supports external identity providers; asynchronous jobs remain a future capability. The memory store is neither durable nor horizontally scalable. S3 lookups prioritize a simple deployment contract over very-large-bucket indexing; dedicate the result prefix and enforce lifecycle deletion.
 
 Application controls do not replace network policy. Internet-facing operators should still combine exact source-host allow-listing with egress firewall rules.
 
@@ -184,13 +271,15 @@ Transcript content is untrusted data. OpenTranscribe never interprets it as inst
 The canonical documentation site is [fbossiere.github.io/open-transcribe-mcp](https://fbossiere.github.io/open-transcribe-mcp/).
 
 - [Architecture](docs/architecture.md)
+- [Configuration and service combinations](docs/configuration.md)
 - [Providers and capabilities](docs/providers.md)
+- [OIDC authentication](docs/auth-oidc.md)
 - [Security model](docs/security.md)
 - [Privacy and retention](docs/privacy.md)
 - [OpenTranscribe Setup on Linux](docs/desktop.md)
 - [Desktop release acceptance](docs/desktop-acceptance.md)
 - [Scaleway deployment](docs/deploy-scaleway.md)
-- [Release process](docs/releasing.md)
+- [Publication protocol](docs/releasing.md)
 - [Tutorial: Plaud on Ubuntu, step by step](docs/tutorials/plaud-ubuntu.md) ([PDF](docs/tutorials/plaud-ubuntu.pdf))
 - [Plaud recipe](docs/recipes/plaud.md)
 - [ChatGPT + Google Drive recipe](docs/recipes/chatgpt-gdrive.md)

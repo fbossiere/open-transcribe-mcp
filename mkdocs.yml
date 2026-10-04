@@ -11,6 +11,7 @@ theme:
 nav:
   - Home: index.md
   - Architecture: architecture.md
+  - Configuration: configuration.md
   - Providers: providers.md
   - Security: security.md
   - OIDC authentication: auth-oidc.md
@@ -24,7 +25,7 @@ nav:
   - Recipes:
       - Plaud: recipes/plaud.md
       - ChatGPT and Google Drive: recipes/chatgpt-gdrive.md
-  - Releasing: releasing.md
+  - Publication protocol: releasing.md
 
 markdown_extensions:
   - admonition

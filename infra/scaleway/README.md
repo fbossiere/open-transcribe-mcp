@@ -8,7 +8,10 @@ This root module deploys OpenTranscribe MCP on Scaleway Serverless Containers. I
 - optional private Object Storage, lifecycle deletion, and a dedicated IAM application for stored results.
 
 The registry must contain the selected image before the final apply. See
-[`../../docs/deploy-scaleway.md`](../../docs/deploy-scaleway.md) for the bootstrap and deployment sequence.
+[`../../docs/deploy-scaleway.md`](../../docs/deploy-scaleway.md) for the bootstrap, existing-resource imports, release-image copying, upgrades and rollback.
+See [configuration and service combinations](../../docs/configuration.md) for provider recipes,
+settings precedence and independent authentication/storage choices. A public release does not
+automatically redeploy this module.
 
 ## Deployment credentials
 

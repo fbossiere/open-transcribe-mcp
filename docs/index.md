@@ -11,6 +11,10 @@ authorized audio + required capabilities + provider/model preference
 
 It does not discover recordings, identify real speakers, summarize meetings, write to downstream systems, or retain audio and transcripts by default.
 
+The current stable release is **1.2.1**. Choose a [configuration and service combination](configuration.md),
+follow the [Scaleway deployment guide](deploy-scaleway.md) for hosted operation, or use the
+[publication protocol](releasing.md) when maintaining a release.
+
 Start with the [repository quickstart](https://github.com/fbossiere/open-transcribe-mcp#ten-minute-quickstart), then use these pages for architecture, provider capabilities, security, privacy, deployment, and operational detail.
 
 If you are not a developer and want to transcribe a Plaud recorder on Ubuntu, follow the [step-by-step tutorial](tutorials/plaud-ubuntu.md) instead.
