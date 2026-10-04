@@ -277,7 +277,7 @@ jobs:
         run: >-
           uv run cyclonedx-py environment
           --output-format json
-          --outfile dist/open-transcribe-assistant.cdx.json
+          --output-file dist/open-transcribe-assistant.cdx.json
           .venv
 
       - name: Record build provenance inputs
