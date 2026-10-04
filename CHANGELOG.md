@@ -6,6 +6,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Documentation
 
+- Redesign the documentation site with a responsive Material theme, grouped sidebar navigation, light/dark palettes, an accessible transcription diagram and task-oriented setup links. Keep existing page URLs and serve fonts/assets without third-party telemetry.
+
 - Expand the README with Scaleway deployment, provider/authentication/storage combinations and configuration ownership. Add a canonical configuration guide and complete the release protocol, including immutable tags, partial-publication recovery, image digest verification and deployment updates.
 
 ### Fixed
