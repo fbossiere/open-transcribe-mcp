@@ -18,7 +18,7 @@ The defaults intentionally start small:
 - scale-out threshold: 4 concurrent requests per instance;
 - one Uvicorn worker per instance;
 - request timeout: 900 seconds;
-- HTTPS-only ingress with application-level bearer authentication.
+- HTTPS-only ingress with application-level bearer or external OIDC authentication.
 
 The concurrency value is an autoscaling threshold, not a hard request limit. Measure real recordings and provider latency before raising it. Provider and platform duration limits still apply.
 
@@ -140,13 +140,46 @@ cd infra/scaleway
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-Set the real `project_id`, an immutable `image_tag`, provider configuration, a strong MCP bearer token, and provider credentials. Generate secrets locally, for example:
+The example configures ElevenLabs `scribe-v2` by default with Groq available for requests that
+fit its capabilities. Fill the real `project_id`, a release `image_tag` (currently `1.2.1`),
+provider credentials and a strong MCP bearer token. Use `auth_mode = "oidc"` only after completing
+[OIDC configuration](auth-oidc.md); provider credentials remain necessary in either mode.
+Protect the private file with `chmod 600 terraform.tfvars`.
+
+See [configuration and service combinations](configuration.md) for single-provider recipes,
+Groq + ElevenLabs + Microsoft, defaults versus routing, standard ElevenLabs retention and
+optional storage. `OT_ELEVENLABS__ZERO_RETENTION` defaults to `true`; standard accounts must
+explicitly accept provider-side retention before setting it to `"false"`. The key needs
+**Speech to Text → Access**. A Groq key does not provide diarization.
+
+Generate secrets locally, for example:
 
 ```bash
 openssl rand -hex 32
 ```
 
 Never commit `terraform.tfvars`, Terraform state, credentials, live signed URLs, recordings, or transcripts.
+
+## Adopt an existing deployment
+
+Do this before the bootstrap steps if a registry/namespace/container already exists outside this
+Terraform state. Use the same project, region and names, then import the existing resources to
+preserve the container endpoint. Obtain complete IDs from the Scaleway console or CLI; the
+registry namespace and Serverless Containers namespace are different resources.
+
+```bash
+terraform init
+terraform import scaleway_registry_namespace.this fr-par/REGISTRY-NAMESPACE-UUID
+terraform import scaleway_container_namespace.this fr-par/CONTAINER-NAMESPACE-UUID
+terraform import scaleway_container.this fr-par/CONTAINER-UUID
+terraform plan -out=open-transcribe.tfplan
+```
+
+Replace the placeholders and region with your values. Review the first plan carefully, including
+authentication, environment maps, image and resources. Import records infrastructure in state;
+it does not automatically copy existing runtime secrets into your `tfvars`. Populate those from
+your own secret source and resolve unexpected replacements before applying. Do not import a
+second time when this state already owns the resources. Back up state privately before adoption.
 
 ## 3. Bootstrap the private registry
 
@@ -164,14 +197,56 @@ IMAGE_REFERENCE="$(terraform output -raw image_reference)"
 REGISTRY_ENDPOINT="$(terraform output -raw registry_endpoint)"
 ```
 
-Log in, build an AMD64 image, and push it:
+Log in to the registry host (the endpoint also contains the namespace path):
 
 ```bash
-printf '%s' "$SCW_SECRET_KEY" | docker login "$REGISTRY_ENDPOINT" --username nologin --password-stdin
-docker buildx build --platform linux/amd64 --push --tag "$IMAGE_REFERENCE" ../..
+printf '%s' "$SCW_SECRET_KEY" | docker login "${REGISTRY_ENDPOINT%%/*}" \
+  --username nologin --password-stdin
 ```
 
-The production image includes the `s3` optional dependency so the same immutable image can run with or without the optional result store.
+### Copy a public release image
+
+Prefer the published release to avoid rebuilding a different image from your working tree.
+Download `container-digest.txt` and `SHA256SUMS` from the selected
+[GitHub release](https://github.com/fbossiere/open-transcribe-mcp/releases), verify that file's
+checksum against `SHA256SUMS`, and use its full `ghcr.io/…@sha256:…` reference as `PUBLIC_IMAGE`.
+The following starts with a version tag; replace it with that verified digest reference for an
+exact copy:
+
+```bash
+PUBLIC_IMAGE="ghcr.io/fbossiere/open-transcribe-mcp:1.2.1"
+docker buildx imagetools inspect "$PUBLIC_IMAGE"
+docker buildx imagetools create --tag "$IMAGE_REFERENCE" "$PUBLIC_IMAGE"
+docker buildx imagetools inspect "$IMAGE_REFERENCE"
+```
+
+Compare the top-level `Digest` printed for source and destination. Copying the existing image
+index preserves the release's attestations and platform selection; do not select only the
+architecture manifest when comparing against the release index digest. Record the verified
+private-registry digest in your private `terraform.tfvars`:
+
+```hcl
+image_tag    = "1.2.1"
+image_digest = "sha256:REPLACE-WITH-THE-64-HEX-DIGEST"
+```
+
+`image_tag` chooses the private registry reference. `image_digest` is supplied to Scaleway as
+`registry_sha256`, pinning deployment and triggering an update when it changes. It does not
+replace the tag in Terraform's `image_reference` output. Never fill it with a source Git SHA.
+
+### Or build your reviewed source
+
+For your own code changes, use a unique build tag, set the matching `image_tag` in `tfvars`,
+refresh `IMAGE_REFERENCE`, then build/push from this module directory:
+
+```bash
+docker buildx build --platform linux/amd64 --push --tag "$IMAGE_REFERENCE" ../..
+docker buildx imagetools inspect "$IMAGE_REFERENCE"
+```
+
+Record this build's own digest; do not reuse the official release's digest for a local rebuild.
+The production image includes the `s3` optional dependency, so the same image can run with or
+without the optional result store. Credentials are injected at runtime, never baked into it.
 
 ## 4. Apply the complete deployment
 
@@ -191,6 +266,12 @@ terraform output -raw mcp_endpoint
 terraform output -raw health_endpoint
 ```
 
+After a first deployment, `terraform output -raw container_endpoint` gives the HTTPS origin
+needed for OIDC's `OT_SECURITY__OIDC_PUBLIC_BASE_URL`. For a new deployment whose hostname is not yet
+known, establish it with bearer authentication, configure the external identity provider for
+that origin and `/mcp` audience, then plan/apply the complete OIDC settings. See the
+[authentication combinations](configuration.md#mcp-authentication-is-a-separate-choice).
+
 The Scaleway container is `public` at the platform layer because MCP clients do not natively send Scaleway's private-container `X-Auth-Token`. OpenTranscribe protects `/mcp` with the selected bearer or OIDC mode; `/healthz` remains available to the platform probe. For ChatGPT connections through an identity provider, follow [OIDC authentication](auth-oidc.md) before setting `auth_mode = "oidc"`.
 
 ## Optional temporary result store
@@ -201,8 +282,9 @@ Set the following in `terraform.tfvars`:
 enable_result_store = true
 
 secret_environment_variables = {
-  OT_SECURITY__BEARER_TOKEN     = "..."
-  OT_MICROSOFT__API_KEY          = "..."
+  OT_SECURITY__BEARER_TOKEN      = "..."
+  OT_ELEVENLABS__API_KEY         = "..."
+  OT_GROQ__API_KEY               = "..."
   OT_RESULT_STORE__CURSOR_SECRET = "..."
 }
 ```
@@ -288,15 +370,53 @@ terragrunt apply open-transcribe.tfplan
 
 Two things move with the working directory. Terragrunt copies both the module and the wrapper directory's own files into `.terragrunt-cache/`, which is gitignored, so `terraform.tfvars` belongs next to the wrapper — or is passed through `inputs` in it — rather than in `infra/scaleway`; a saved plan file lands in that cache too, which is why the plan and the apply above have to run from the same wrapper directory. The image build in step 3 uses a relative context, so run `docker buildx build --platform linux/amd64 --push --tag "$IMAGE_REFERENCE" .` from the repository root instead of `../..` from the module.
 
-## Updating the application
+## Upgrades, configuration changes and rollback
 
-Use a new immutable tag for every build:
+Publishing a GitHub release does not deploy this module. Choose a version deliberately and
+keep a private record of the previous `image_tag`, verified digest and runtime configuration.
+
+### Change provider keys, defaults or authentication
+
+Edit your private `terraform.tfvars`: provider selection goes in `environment_variables`, keys
+in `secret_environment_variables`, authentication in the top-level `auth_mode` plus its required
+settings. Keep the existing authentication settings when changing only providers. Review and
+apply a saved plan; this updates the container configuration without rebuilding its image.
+Switching ElevenLabs retention or enabling S3 is a separate privacy choice, not a required
+consequence of adding a provider.
 
 ```bash
-docker buildx build --platform linux/amd64 --push --tag "$REGISTRY_ENDPOINT/open-transcribe-mcp:1.0.0" ../..
+terraform plan -out=open-transcribe.tfplan
+terraform apply open-transcribe.tfplan
 ```
 
-Change `image_tag` to the same value, run `terraform plan`, then apply. For a tag that must be reused, pass its `sha256:...` registry digest as `image_digest`; Terraform uses it to force an exact redeployment.
+### Deploy a new application release
+
+1. Confirm the public release completed and verify its assets/digest following the
+   [publication protocol](releasing.md#4-verify-the-public-result).
+2. Change `image_tag` to the chosen version. Before a full apply, obtain the new image reference
+   (`terraform console` can evaluate `local.image_reference` before outputs have refreshed), or
+   construct it from `registry_endpoint`, `image_name` and the new tag. Existing outputs still
+   describe the last applied tag until state updates.
+3. Copy the verified public image into that exact private reference using step 3. Verify its
+   registry digest, then set `image_digest` to that digest. Avoid moving tags such as `latest`.
+4. Review and apply a saved plan. Verify health, authentication, model inventory and the
+   capabilities you need. Finish with another plan to confirm no unexpected drift remains.
+
+Scaleway records resource allocations in integer decimal MB. If plans repeatedly change only
+memory/local-storage bytes, read the observed values and use them in `memory_limit_bytes` and
+`local_storage_limit_bytes`; for example 512 MiB may become `536000000` bytes and 1 GiB may become
+`1073000000`. Do not treat this rounding as an application release change.
+
+### Roll back
+
+Restore the previous tag/digest and the compatible configuration in your private `tfvars`.
+Ensure that image is still present in the private registry, review the plan, apply, then repeat
+operational checks. A rollback does not restore expired/deleted transcript objects or undo
+provider-side processing. Secret rotation and Terraform state migration need their own handling;
+do not restore revoked secrets from an old file.
+
+Keep state encrypted/access-controlled and remove saved plans when no longer needed. Do not use
+`terraform destroy` as an upgrade or rollback mechanism.
 
 ## Operational checks
 
@@ -304,7 +424,7 @@ After deployment:
 
 1. verify `/healthz` returns HTTP 200;
 2. verify `/readyz` returns HTTP 200 and lists the intended provider;
-3. verify `/mcp` rejects a missing or invalid bearer token;
+3. verify `/mcp` rejects missing/invalid credentials for the selected bearer or OIDC mode;
 4. run a short, authorized test recording;
 5. if S3 is enabled, retrieve and delete a stored transcript and confirm no object survives the lifecycle window;
 6. review Serverless Container logs to confirm transcript text, signed URL queries, phrase hints, and credentials are absent.
@@ -313,10 +433,16 @@ The repository automates checks 1 to 5 as an opt-in end-to-end suite. It skips i
 
 ```bash
 cd infra/scaleway
-export OT_E2E_BEARER_TOKEN="..."   # the deployment's OT_SECURITY__BEARER_TOKEN
+export OT_E2E_BEARER_TOKEN="..."   # bearer-mode token, or valid OIDC access token for /mcp
 uv run --directory ../.. pytest tests/e2e \
   --deployment-url "$(terraform output -raw mcp_endpoint)"
 ```
+
+Despite its variable name, the suite's token is sent as `Authorization: Bearer`; in OIDC mode
+supply an access token from your external provider with the configured issuer, `/mcp` audience,
+scope and entitlement. The suite does not obtain or refresh that token for you. A readiness probe
+checks configuration presence, not provider-key validity; a real short transcription verifies
+credentials and capabilities.
 
 The URL is accepted in its base, `/mcp`, `/healthz`, or `/readyz` form, so any of the module's endpoint outputs works. By default the suite transcribes the repository's synthetic bilingual fixture, served from `raw.githubusercontent.com`, and compares the result to `tests/fixtures/reference-transcript.txt`. It asks the deployment which models are configured and requests only capabilities the selected model reports, so it works against any single configured provider; a Whisper deployment transcribes one language of that fixture and drops the other, which is why the comparison scores the best-matching speaker turn rather than the whole reference.
 

@@ -4,6 +4,10 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Documentation
+
+- Expand the README with Scaleway deployment, provider/authentication/storage combinations and configuration ownership. Add a canonical configuration guide and complete the release protocol, including immutable tags, partial-publication recovery, image digest verification and deployment updates.
+
 ### Fixed
 
 - Use the current CycloneDX CLI output-file option when generating the desktop package SBOM.

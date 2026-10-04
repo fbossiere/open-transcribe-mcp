@@ -35,13 +35,18 @@ claim.
 ## Install
 
 Download `open-transcribe-assistant_<version>-<revision>_amd64.deb` from the
-[releases page](https://github.com/fbossiere/open-transcribe-mcp/releases), then double-click it
-in your file manager, or install it from a terminal:
+[releases page](https://github.com/fbossiere/open-transcribe-mcp/releases), together with that
+release's `SHA256SUMS`. Verify the downloaded package, then double-click it in your file manager,
+or install it from a terminal:
 
 ```bash
-sha256sum --check open-transcribe-assistant_<version>-<revision>_amd64.deb.sha256
+sha256sum --check --ignore-missing SHA256SUMS
 sudo apt install ./open-transcribe-assistant_<version>-<revision>_amd64.deb
 ```
+
+`--ignore-missing` allows the checksum file to cover other release assets you did not download;
+it still verifies the downloaded package. The separate `.deb.sha256` exists only in the workflow
+artifacts, not as a public release asset. See the [publication protocol](releasing.md).
 
 `apt install` on a local file resolves the package's system dependencies for you. Open
 **OpenTranscribe Setup** from your applications menu afterwards.
