@@ -46,6 +46,7 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Security
 
+- Update locked PyJWT to 2.15.1 and urllib3 to 2.8.0 to incorporate their published security fixes.
 - Apply available Debian package fixes in a shared Docker base stage so the builder and runtime do not retain vulnerabilities patched after the pinned Python image was published.
 
 ## [1.1.0] - 2026-09-07
