@@ -32,7 +32,7 @@ consistent transcript your MCP client can use anywhere.
 
 </div>
 
-<div class="ot-flow" aria-label="Audio flows through OpenTranscribe to your selected provider and returns a normalized transcript">
+<div class="ot-flow" role="group" aria-label="Audio flows through OpenTranscribe to your selected provider and returns a normalized transcript">
   <div class="ot-flow-heading"><span>THE TRANSCRIPTION PIPELINE</span><span class="ot-flow-live">MCP</span></div>
   <div class="ot-audio">
     <div class="ot-flow-label"><span class="ot-step">01</span><span>Any authorized audio</span><span class="ot-file">HTTPS</span></div>
