@@ -4,6 +4,10 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Fixed
+
+- Use the current CycloneDX CLI output-file option when generating the desktop package SBOM.
+
 ## [1.2.1] - 2026-10-04
 
 

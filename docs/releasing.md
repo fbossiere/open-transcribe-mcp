@@ -59,3 +59,17 @@ changelog, README example, Python package version, MCP server version, and MCP p
 PyPI must succeed before MCP Registry publication begins. Rerunning a partially successful workflow
 is safe only for a failed job: registry versions are immutable and PyPI does not allow uploading an
 existing filename again.
+
+## Repair an already published version
+
+If Python and MCP Registry publication succeeded but a later artifact job failed, fix the
+workflow on `main`, then dispatch the repair against the existing immutable tag:
+
+```bash
+gh workflow run release.yml --ref main -f tag=v1.2.1
+```
+
+The repair rebuilds the tagged source and verifies that its Python artifact hashes match PyPI
+and its MCP Registry version exists before rebuilding container and desktop artifacts. It
+skips both immutable registry publication jobs. Use this only after both registries published
+successfully; it cannot recover a tag that failed before those publications.
