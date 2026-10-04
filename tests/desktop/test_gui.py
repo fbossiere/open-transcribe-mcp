@@ -143,7 +143,11 @@ def test_nothing_clips_at_the_smallest_supported_size(window, application: QAppl
     for index in range(window.stack.count()):
         page = window.stack.widget(index)
         assert page.minimumSizeHint().width() <= SMALLEST_SUPPORTED[0], type(page).__name__
-    assert window.scroll_area.horizontalScrollBar().maximum() == 0
+        # Fitting the window is not enough: the page must also fit beside its own margins and
+        # whatever scroll bar it needs, on the page actually shown.
+        window.show_step(index)
+        application.processEvents()
+        assert window.scroll_area.horizontalScrollBar().maximum() == 0, type(page).__name__
 
 
 def test_the_provider_step_shows_canonical_capabilities_not_a_hand_written_catalogue(
@@ -285,6 +289,29 @@ def test_the_review_step_lists_the_recipients_and_the_data_flow(window) -> None:
     window.steps[4].details_button.setChecked(True)
     assert window.steps[4].changes.isVisible()
     assert "keyring: groq:api_key" in window.steps[4].changes.text()
+
+
+def test_the_review_action_is_enabled_when_the_step_is_shown_after_its_plan(window) -> None:
+    """The window prepares the review step before switching to it, as `prepare_review` does."""
+    from pydantic import SecretStr
+
+    from open_transcribe.desktop.credentials import InMemoryCredentialStore
+    from open_transcribe.desktop.schema import ManagedSelection
+    from open_transcribe.desktop.setup import ProviderIntent, SetupIntent, SetupService
+
+    service = SetupService(window.paths, InMemoryCredentialStore(), Path("/bin/true"))
+    intent = SetupIntent(
+        providers=(ProviderIntent("groq", True, {"api_key": SecretStr("k")}),),
+        selection=ManagedSelection(provider="groq", model="whisper-large-v3-turbo"),
+    )
+    plan = service.plan(intent)
+    window.show_step(2)
+    model = window.steps[2].selected_model()
+    window.steps[4].show_plan(plan, model, "Another MCP client")
+    window.show_step(4)
+
+    assert window.primary.text() == "Enable connection"
+    assert window.primary.isEnabled()
 
 
 def test_the_final_step_separates_registration_from_activation(window) -> None:

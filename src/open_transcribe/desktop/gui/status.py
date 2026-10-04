@@ -50,8 +50,9 @@ class StatusPage(QWidget):
         column.addWidget(self.staleness)
         column.addWidget(body_label(self.t("status.revocation")))
 
-        # A grid rather than a row: six buttons in one row would give the page a minimum width
+        # A grid rather than a row: six buttons side by side would give the page a minimum width
         # wider than a 1280 x 720 window at 200% scaling, and the page would clip instead of wrap.
+        # Two columns, not three, so the page still fits the smallest supported window.
         actions = QGridLayout()
         for index, (label, signal) in enumerate(
             (
@@ -66,7 +67,7 @@ class StatusPage(QWidget):
             button = QPushButton(label)
             button.setAccessibleName(label)
             button.clicked.connect(signal.emit)
-            actions.addWidget(button, index // 3, index % 3)
+            actions.addWidget(button, index // 2, index % 2)
         column.addLayout(actions)
         column.addStretch(1)
 

@@ -34,6 +34,18 @@ key_path = ["mcpServers"]
 config_paths = ["$HOME/.claude.json"]
 restart_required = true
 
+# The ChatGPT desktop app reads the Codex host's configuration, so this entry and the Codex CLI
+# entry below describe the same store reached two different ways: this one edits the file, which
+# works when only the app is installed, and that one drives the `codex` binary when it is present.
+[[clients]]
+id = "chatgpt-app"
+display_name = "ChatGPT app"
+kind = "toml"
+support_status = "untested"
+table_path = ["mcp_servers"]
+config_paths = ["$HOME/.codex/config.toml"]
+restart_required = true
+
 [[clients]]
 id = "codex-cli"
 display_name = "Codex CLI"

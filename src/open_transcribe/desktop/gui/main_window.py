@@ -11,11 +11,11 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QDialog,
+    QFrame,
     QHBoxLayout,
+    QLabel,
     QMainWindow,
     QPushButton,
-    QScrollArea,
-    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -34,8 +34,14 @@ from open_transcribe.desktop.gui.steps import (
     Step,
     WelcomeStep,
 )
-from open_transcribe.desktop.gui.theme import CONTENT_WIDTH
-from open_transcribe.desktop.gui.widgets import BusyBar, announce, body_label, heading_label
+from open_transcribe.desktop.gui.theme import CONTENT_WIDTH, app_icon, icon_pixmap
+from open_transcribe.desktop.gui.widgets import (
+    BusyBar,
+    FormScrollArea,
+    PageStack,
+    announce,
+    body_label,
+)
 from open_transcribe.desktop.gui.workers import TaskFailure, run_async
 from open_transcribe.desktop.i18n import translator
 from open_transcribe.desktop.installation import current_installation
@@ -63,43 +69,86 @@ class MainWindow(QMainWindow):
         self._intent: SetupIntent | None = None
         self._task: Any = None
 
-        central = QWidget()
-        self.setCentralWidget(central)
-        outer = QVBoxLayout(central)
+        self.setWindowIcon(app_icon())
 
-        header = QHBoxLayout()
-        self.title = heading_label(self.t("app.name"))
-        header.addWidget(self.title, 1)
+        shell = QWidget()
+        shell.setObjectName("shell")
+        self.setCentralWidget(shell)
+        outer = QVBoxLayout(shell)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        header = QWidget()
+        header.setObjectName("header")
+        header_column = QVBoxLayout(header)
+        header_column.setContentsMargins(24, 16, 24, 14)
+        header_column.setSpacing(12)
+        brand_row = QHBoxLayout()
+        logo = QLabel()
+        logo.setPixmap(icon_pixmap(30))
+        logo.setFixedSize(30, 30)
+        brand_row.addWidget(logo)
+        self.title = body_label(self.t("app.name"))
+        self.title.setObjectName("brand")
+        brand_row.addWidget(self.title, 1)
         self.progress = body_label("")
         self.progress.setProperty("muted", True)
-        header.addWidget(self.progress)
-        outer.addLayout(header)
+        brand_row.addWidget(self.progress)
+        header_column.addLayout(brand_row)
+        # One segment per step, filled as far as the wizard has come.
+        segments = QHBoxLayout()
+        segments.setSpacing(6)
+        self.segments: list[QFrame] = []
+        for _ in range(TOTAL_STEPS):
+            segment = QFrame()
+            segment.setObjectName("segment")
+            segment.setFixedHeight(4)
+            segments.addWidget(segment)
+            self.segments.append(segment)
+        header_column.addLayout(segments)
+        self.message = body_label("")
+        self.message.setProperty("severity", "error")
+        self.message.hide()
+        header_column.addWidget(self.message)
+        outer.addWidget(header)
 
         # Navigation stays visible while the content scrolls.
-        self.scroll_area = QScrollArea()
+        self.scroll_area = FormScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.stack = QStackedWidget()
+        page = QWidget()
+        page.setObjectName("page")
+        centered = QHBoxLayout(page)
+        centered.setContentsMargins(24, 12, 24, 20)
+        self.stack = PageStack()
         self.stack.setMaximumWidth(CONTENT_WIDTH)
-        self.scroll_area.setWidget(self.stack)
+        centered.addWidget(self.stack, 0, Qt.AlignmentFlag.AlignTop)
+        self.scroll_area.setWidget(page)
         outer.addWidget(self.scroll_area, 1)
 
+        footer = QWidget()
+        footer.setObjectName("footer")
+        footer_column = QVBoxLayout(footer)
+        footer_column.setContentsMargins(24, 12, 24, 14)
+        footer_column.setSpacing(10)
         self.busy = BusyBar()
-        outer.addWidget(self.busy)
+        footer_column.addWidget(self.busy)
 
-        footer = QHBoxLayout()
+        buttons = QHBoxLayout()
         self.back = QPushButton(self.t("nav.back"))
         self.back.clicked.connect(self.go_back)
-        footer.addWidget(self.back)
-        footer.addStretch(1)
+        buttons.addWidget(self.back)
+        buttons.addStretch(1)
         self.cancel = QPushButton(self.t("nav.cancel"))
         self.cancel.clicked.connect(self.close)
-        footer.addWidget(self.cancel)
+        buttons.addWidget(self.cancel)
         self.primary = QPushButton("")
+        self.primary.setObjectName("primary")
         self.primary.setDefault(True)
         self.primary.clicked.connect(self.advance)
-        footer.addWidget(self.primary)
-        outer.addLayout(footer)
+        buttons.addWidget(self.primary)
+        footer_column.addLayout(buttons)
+        outer.addWidget(footer)
 
         self._build_pages()
         self._start()
@@ -178,10 +227,18 @@ class MainWindow(QMainWindow):
         self.progress.setVisible(index < TOTAL_STEPS)
         if index < TOTAL_STEPS:
             self.progress.setText(self.t("nav.step", current=index + 1, total=TOTAL_STEPS))
+        for position, segment in enumerate(self.segments):
+            segment.setVisible(index < TOTAL_STEPS)
+            segment.setProperty("reached", position <= index)
+            segment.style().unpolish(segment)
+            segment.style().polish(segment)
+        self.message.hide()
         if isinstance(widget, Step):
             self.primary.setText(widget.action_label())
-            self.primary.setEnabled(False)
             widget.activate()
+            # A step prepared before it was shown keeps the readiness it recorded, so the
+            # review and finish steps are not switched to with their own action disabled.
+            self.primary.setEnabled(widget.is_ready())
             if index == 1:
                 self.run_checks()
         self.scroll_area.verticalScrollBar().setValue(0)
@@ -222,8 +279,11 @@ class MainWindow(QMainWindow):
 
     def _show_failure(self, failure: TaskFailure) -> None:
         announce(self, failure.message)
-        self.title.setText(failure.message)
-        self.title.setProperty("severity", "error")
+        text = (
+            f"{failure.message} {failure.recovery}".strip() if failure.recovery else failure.message
+        )
+        self.message.setText(text)
+        self.message.show()
 
     def run_checks(self) -> None:
         self._busy(
