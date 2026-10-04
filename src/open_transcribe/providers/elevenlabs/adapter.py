@@ -144,6 +144,10 @@ class ElevenLabsProvider(HttpProvider):
     ) -> CanonicalTranscript:
         speakers = SpeakerNormalizer()
         language = normalize_language(data.get("language_code"))
+        # Scribe uses ISO 639-3; keep French consistent with the canonical request and other
+        # adapters' `fr` output. Accept the ISO 639-2 bibliographic alias as well.
+        if language in {"fra", "fre"}:
+            language = "fr"
         segments: list[TranscriptSegment] = []
         current: TranscriptSegment | None = None
         for item in data.get("words", []):

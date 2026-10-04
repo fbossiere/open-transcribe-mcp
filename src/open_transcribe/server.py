@@ -4,6 +4,8 @@ from typing import Any, Literal
 import structlog
 import uvicorn
 from fastmcp import FastMCP
+from fastmcp.server.auth import RemoteAuthProvider
+from pydantic import AnyHttpUrl
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -16,7 +18,7 @@ from open_transcribe.policy import TranscriptionPolicy
 from open_transcribe.providers.registry import ProviderRegistry
 from open_transcribe.result_store.factory import create_result_store
 from open_transcribe.routing.router import Router
-from open_transcribe.security.auth import BearerAuthMiddleware
+from open_transcribe.security.auth import BearerAuthMiddleware, ClaimRestrictedJWTVerifier
 from open_transcribe.service import TranscriptionService
 from open_transcribe.settings import Settings, get_settings
 from open_transcribe.sources.resolver import SourceBroker, TemporaryFileFactory
@@ -51,7 +53,31 @@ def create_server(
 ) -> FastMCP:
     configure_logging()
     service = create_service(config, policy, workspace)
-    mcp = FastMCP("OpenTranscribe")
+    auth = None
+    if config.transport == "http" and config.security.auth_mode == "oidc":
+        security = config.security
+        if (
+            security.oidc_issuer_url is None
+            or security.oidc_jwks_url is None
+            or security.oidc_public_base_url is None
+        ):
+            raise ValueError("OIDC configuration is incomplete")
+        base_url = str(security.oidc_public_base_url).rstrip("/")
+        auth = RemoteAuthProvider(
+            token_verifier=ClaimRestrictedJWTVerifier(
+                jwks_uri=str(security.oidc_jwks_url),
+                issuer=str(security.oidc_issuer_url),
+                audience=f"{base_url}/mcp",
+                algorithm="RS256",
+                required_scopes=[security.oidc_required_scope],
+                claim_path=security.oidc_required_claim_path,
+                claim_value=security.oidc_required_claim_value or "",
+            ),
+            authorization_servers=[AnyHttpUrl(str(security.oidc_issuer_url))],
+            base_url=base_url,
+            scopes_supported=[security.oidc_required_scope],
+        )
+    mcp = FastMCP("OpenTranscribe", auth=auth)
     logger = structlog.get_logger()
 
     def failure(exc: OpenTranscribeError) -> ToolErrorResult:

@@ -14,7 +14,7 @@
 
 Source URLs accept only HTTP(S), require HTTPS by default, forbid user-info credentials, resolve DNS, and reject every non-global address. Proxy downloads connect to a validated address directly while preserving the original HTTPS SNI and Host authority, closing the validation-to-connection DNS-rebinding window. Validation and address pinning repeat for every redirect. Redirect count, download timeout, declared length, streamed bytes, MIME type, and recognizable file signatures are bounded. `trust_env=False` prevents ambient proxy settings from silently changing the request path. Proxy files use random names and are removed in `finally` paths.
 
-Bearer tokens use constant-time comparison. Production rejects `auth_mode=none`; OIDC is intentionally deferred until its discovery and key-management contract can be implemented completely. Result cursors are opaque HMAC-authenticated payloads bound to transcript ID and output format. S3 objects contain only gzip canonical JSON and request server-side encryption.
+Bearer tokens use constant-time comparison. Production rejects `auth_mode=none`. In OIDC mode, the MCP endpoint publishes protected-resource metadata and checks each JWT against the configured issuer, JWKS, exact MCP audience, expiry, required scope, and an entitlement claim. The authorization server remains a separate identity provider; see [OIDC authentication](auth-oidc.md). Result cursors are opaque HMAC-authenticated payloads bound to transcript ID and output format. S3 objects contain only gzip canonical JSON and request server-side encryption.
 
 Provider errors are reduced to stable project codes and status metadata. Raw bodies are not returned. Structured logs contain no content.
 

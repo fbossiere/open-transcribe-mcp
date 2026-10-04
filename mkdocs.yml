@@ -13,6 +13,7 @@ nav:
   - Architecture: architecture.md
   - Providers: providers.md
   - Security: security.md
+  - OIDC authentication: auth-oidc.md
   - Privacy: privacy.md
   - Desktop:
       - OpenTranscribe Setup on Linux: desktop.md

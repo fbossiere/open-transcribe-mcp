@@ -106,3 +106,37 @@ def test_groq_normalization(settings: Settings) -> None:
     assert result.source_duration_ms == 1000
     assert result.segments
     assert len(result.segments[0].words or []) == 2
+
+
+def test_elevenlabs_french_speaker_turns_preserve_returning_speaker(settings: Settings) -> None:
+    _, eleven, _ = providers(settings)
+    result = eleven.normalize(
+        {
+            "language_code": "fra",
+            "text": "Bonjour. Salut. Merci.",
+            "words": [
+                {"type": "word", "text": "Bonjour.", "start": 0, "end": 1, "speaker_id": "a"},
+                {"type": "word", "text": "Salut.", "start": 1.5, "end": 2, "speaker_id": "b"},
+                {"type": "word", "text": "Merci.", "start": 3, "end": 4, "speaker_id": "a"},
+            ],
+        },
+        request=request(language="fr", timestamps="segment"),
+        model=eleven.list_models()[0],
+        latency_ms=5,
+        request_id=None,
+    )
+    assert result.detected_languages == ["fr"]
+    assert result.metadata.diarization is True
+    assert result.segments is not None
+    assert [segment.speaker for segment in result.segments] == [
+        "SPEAKER_01",
+        "SPEAKER_02",
+        "SPEAKER_01",
+    ]
+    assert [segment.text for segment in result.segments] == ["Bonjour.", "Salut.", "Merci."]
+    assert [(segment.start_ms, segment.end_ms) for segment in result.segments] == [
+        (0, 1000),
+        (1500, 2000),
+        (3000, 4000),
+    ]
+    assert all(segment.words is None for segment in result.segments)

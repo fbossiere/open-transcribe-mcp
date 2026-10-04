@@ -34,6 +34,12 @@ class GroqSettings(BaseModel):
 class SecuritySettings(BaseModel):
     auth_mode: Literal["none", "bearer", "oidc"] = "bearer"
     bearer_token: SecretStr | None = None
+    oidc_issuer_url: HttpUrl | None = None
+    oidc_jwks_url: HttpUrl | None = None
+    oidc_public_base_url: HttpUrl | None = None
+    oidc_required_scope: str = "mcp:tools"
+    oidc_required_claim_path: str = "realm_access.roles"
+    oidc_required_claim_value: str | None = None
     require_https_sources: bool = True
     allow_private_urls: bool = False
     max_redirects: int = Field(default=3, ge=0, le=10)
@@ -93,8 +99,6 @@ class Settings(BaseSettings):
         it neither needs nor accepts a bearer token. HTTP keeps its existing contract unchanged:
         the local transport is a separate case, not a relaxation of the remote one.
         """
-        if self.security.auth_mode == "oidc":
-            raise ValueError("OIDC is not implemented; use bearer or none")
         if self.transport == "stdio":
             if self.security.auth_mode != "none":
                 raise ValueError(
@@ -104,6 +108,36 @@ class Settings(BaseSettings):
             return self._validate_stores()
         if self.security.auth_mode == "bearer" and self.security.bearer_token is None:
             raise ValueError("OT_SECURITY__BEARER_TOKEN is required for bearer auth")
+        if self.security.auth_mode == "oidc":
+            if not all(
+                (
+                    self.security.oidc_issuer_url,
+                    self.security.oidc_jwks_url,
+                    self.security.oidc_public_base_url,
+                )
+            ):
+                raise ValueError("OIDC requires issuer, JWKS, and public base URLs")
+            urls = (
+                self.security.oidc_issuer_url,
+                self.security.oidc_jwks_url,
+                self.security.oidc_public_base_url,
+            )
+            if any(
+                url is None or url.scheme != "https" or url.query or url.fragment for url in urls
+            ):
+                raise ValueError("OIDC URLs must use HTTPS without query or fragment")
+            base = self.security.oidc_public_base_url
+            if base is None or base.path not in (None, "", "/"):
+                raise ValueError("OIDC public base URL must not contain a path")
+            scope = self.security.oidc_required_scope
+            if not scope or scope.strip() != scope or any(char.isspace() for char in scope):
+                raise ValueError("OIDC required scope must be one non-empty scope")
+            claim_path = self.security.oidc_required_claim_path
+            claim_value = self.security.oidc_required_claim_value
+            if not all(part.isidentifier() for part in claim_path.split(".")):
+                raise ValueError("OIDC required claim path must use dotted identifiers")
+            if not claim_value or claim_value.strip() != claim_value:
+                raise ValueError("OIDC required claim value must be non-empty")
         if self.environment == "prod" and self.security.auth_mode == "none":
             raise ValueError("unauthenticated HTTP is not allowed in production")
         return self._validate_stores()

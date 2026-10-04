@@ -1,20 +1,27 @@
+# Copy to terraform.tfvars (ignored by Git), then fill in your own values.
 project_id = "00000000-0000-0000-0000-000000000000"
 region     = "fr-par"
-image_tag  = "1.0.0"
+image_tag  = "1.2.0"
 
 environment_variables = {
-  OT_DEFAULT_PROVIDER    = "microsoft"
-  OT_DEFAULT_MODEL       = "MAI-Transcribe-2"
-  OT_MICROSOFT__ENDPOINT = "https://YOUR-RESOURCE.cognitiveservices.azure.com"
+  # Both providers are available when their API keys are configured below.
+  OT_DEFAULT_PROVIDER = "elevenlabs"
+  OT_DEFAULT_MODEL    = "scribe-v2"
+
+  # ElevenLabs zero retention requires an eligible Enterprise account.
+  # Set to "false" only after accepting provider-side retention.
+  OT_ELEVENLABS__ZERO_RETENTION = "true"
 }
 
 secret_environment_variables = {
+  # The default auth_mode is bearer; see docs/auth-oidc.md for OIDC.
   OT_SECURITY__BEARER_TOKEN = "replace-with-a-long-random-value"
-  OT_MICROSOFT__API_KEY      = "replace-with-your-provider-key"
+  OT_ELEVENLABS__API_KEY     = "replace-with-your-elevenlabs-api-key"
+  OT_GROQ__API_KEY           = "replace-with-your-groq-api-key"
 }
 
-# Optional durable, TTL-bound storage for chunked results. The Docker image must
-# include the project's `s3` extra. Add OT_RESULT_STORE__CURSOR_SECRET above.
+# Optional durable, TTL-bound storage for chunked results.
+# Add OT_RESULT_STORE__CURSOR_SECRET above when enabling it.
 enable_result_store = false
 
 tags = ["environment=production"]

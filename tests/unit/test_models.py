@@ -37,3 +37,31 @@ def test_production_requires_authentication() -> None:
 def test_bearer_mode_requires_token() -> None:
     with pytest.raises(ValidationError, match="BEARER_TOKEN"):
         Settings(_env_file=None, environment="test", security={"auth_mode": "bearer"})
+
+
+def test_oidc_requires_complete_secure_configuration() -> None:
+    with pytest.raises(ValidationError, match="OIDC requires"):
+        Settings(_env_file=None, environment="test", security={"auth_mode": "oidc"})
+    with pytest.raises(ValidationError, match="OIDC URLs must use HTTPS"):
+        Settings(
+            _env_file=None,
+            environment="test",
+            security={
+                "auth_mode": "oidc",
+                "oidc_issuer_url": "http://example.com/realms/test",
+                "oidc_jwks_url": "https://example.com/certs",
+                "oidc_public_base_url": "https://transcribe.example",
+                "oidc_required_claim_value": "transcribe-user",
+            },
+        )
+    with pytest.raises(ValidationError, match="OIDC required claim value"):
+        Settings(
+            _env_file=None,
+            environment="test",
+            security={
+                "auth_mode": "oidc",
+                "oidc_issuer_url": "https://example.com/realms/test",
+                "oidc_jwks_url": "https://example.com/certs",
+                "oidc_public_base_url": "https://transcribe.example",
+            },
+        )

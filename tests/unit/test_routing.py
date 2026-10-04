@@ -75,6 +75,39 @@ def test_no_configured_provider_is_an_error(config_dir: object) -> None:
     assert caught.value.response.code == ErrorCode.PROVIDER_UNAVAILABLE
 
 
+def test_french_conversation_requires_speaker_capable_candidates(settings: Settings) -> None:
+    registry = ProviderRegistry.from_settings(settings)
+    candidates = Router(registry, settings).route(
+        _request(
+            language="fr",
+            diarization=True,
+            timestamps="segment",
+            transcript_style="verbatim",
+            strict_capabilities=True,
+        )
+    )
+    assert {candidate.model.provider for candidate in candidates} == {"microsoft", "elevenlabs"}
+    assert all(candidate.request.diarization for candidate in candidates)
+
+
+def test_french_conversation_fixed_scribe_does_not_fallback_to_groq(settings: Settings) -> None:
+    registry = ProviderRegistry.from_settings(settings)
+    candidates = Router(registry, settings).route(
+        _request(
+            provider="elevenlabs",
+            model="scribe-v2",
+            routing_policy="fixed",
+            language="fr",
+            diarization=True,
+            timestamps="segment",
+            transcript_style="verbatim",
+            strict_capabilities=True,
+            allow_fallback=False,
+        )
+    )
+    assert [candidate.model.key for candidate in candidates] == ["elevenlabs/scribe-v2"]
+
+
 GROQ_LIKE: dict[str, object] = {
     "supports_diarization": False,
     "transcript_styles": {TranscriptStyle.VERBATIM},

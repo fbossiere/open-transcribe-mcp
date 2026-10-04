@@ -125,6 +125,50 @@ async def test_elevenlabs_url_passthrough(settings: Settings) -> None:
 
 @pytest.mark.asyncio
 @respx.mock
+async def test_elevenlabs_french_conversation_requests_diarization(settings: Settings) -> None:
+    _, eleven, _ = adapters(settings)
+    route = respx.post("https://api.elevenlabs.io/v1/speech-to-text").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "language_code": "fra",
+                "text": "Bonjour.",
+                "words": [
+                    {
+                        "type": "word",
+                        "text": "Bonjour.",
+                        "start": 0,
+                        "end": 1,
+                        "speaker_id": "speaker_0",
+                    }
+                ],
+            },
+        )
+    )
+    result = await eleven.transcribe(
+        request(language="fr", timestamps="segment", speaker_count_hint=2),
+        ResolvedAudioSource(
+            original_url="https://media.example/audio.mp3",
+            delivery=SourceDelivery.PASSTHROUGH,
+        ),
+        eleven.list_models()[0],
+    )
+    # URL delivery uses form encoding; no file part is required.
+    form = httpx.QueryParams(route.calls[0].request.content.decode())
+    assert form["model_id"] == "scribe_v2"
+    assert form["language_code"] == "fr"
+    assert form["diarize"] == "true"
+    assert form["timestamps_granularity"] == "word"
+    assert form["num_speakers"] == "2"
+    assert form["no_verbatim"] == "false"
+    assert route.calls[0].request.url.params["enable_logging"] == "false"
+    assert result.segments is not None
+    assert result.segments[0].speaker == "SPEAKER_01"
+    assert result.segments[0].end_ms == 1000
+
+
+@pytest.mark.asyncio
+@respx.mock
 async def test_groq_proxy_upload(settings: Settings, tmp_path: Path) -> None:
     _, _, groq = adapters(settings)
     audio = tmp_path / "audio.mp3"
