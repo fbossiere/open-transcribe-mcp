@@ -44,7 +44,7 @@ variable "image_name" {
 variable "image_tag" {
   description = "Image tag to deploy. Use an immutable release or commit tag, never latest."
   type        = string
-  default     = "1.2.0"
+  default     = "1.2.1"
 
   validation {
     condition     = var.image_tag != "latest" && can(regex("^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$", var.image_tag))

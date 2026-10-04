@@ -4,7 +4,7 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
-## [1.2.0] - 2026-10-04
+## [1.2.1] - 2026-10-04
 
 
 ### Added
@@ -39,6 +39,7 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- Install the Qt runtime libraries before desktop tests in the release validation job, matching PR CI. The v1.2.0 tag failed validation before publishing artifacts and is superseded by v1.2.1.
 - Normalize Scribe French language codes (`fra` and `fre`) to canonical `fr`.
 - **Setup could not be completed.** *Enable connection* and *Finish* were prepared before the window switched to their step, and switching steps reset the primary action to disabled, so both stayed unusable whatever the chosen client. A step now records its readiness and the window reads it when it switches pages.
 - The setup window reserved the height of its longest step on every step, leaving short steps scrolling inside a mostly empty page, and the returning-user status page clipped horizontally at the smallest supported window size. The clipping check now exercises each page while it is shown, not only the one that happens to be current.
