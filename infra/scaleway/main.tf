@@ -18,7 +18,7 @@ locals {
       OT_HOST                            = "0.0.0.0"
       OT_PORT                            = "8000"
       OT_REQUEST_TIMEOUT_SECONDS         = tostring(var.request_timeout_seconds)
-      OT_SECURITY__AUTH_MODE             = "bearer"
+      OT_SECURITY__AUTH_MODE             = var.auth_mode
       OT_SECURITY__REQUIRE_HTTPS_SOURCES = "true"
       OT_SECURITY__ALLOW_PRIVATE_URLS    = "false"
     },
@@ -35,7 +35,10 @@ locals {
   )
 
   runtime_secrets = merge(
-    var.secret_environment_variables,
+    {
+      for key, value in var.secret_environment_variables : key => value
+      if var.auth_mode == "bearer" || key != "OT_SECURITY__BEARER_TOKEN"
+    },
     var.enable_result_store ? {
       AWS_ACCESS_KEY_ID     = scaleway_iam_api_key.result_store[0].access_key
       AWS_SECRET_ACCESS_KEY = scaleway_iam_api_key.result_store[0].secret_key
@@ -118,6 +121,18 @@ resource "scaleway_container" "this" {
     precondition {
       condition     = trimspace(try(var.secret_environment_variables["OT_MICROSOFT__API_KEY"], "")) == "" || trimspace(try(var.environment_variables["OT_MICROSOFT__ENDPOINT"], "")) != ""
       error_message = "OT_MICROSOFT__ENDPOINT is required in environment_variables when OT_MICROSOFT__API_KEY is configured."
+    }
+
+    precondition {
+      condition = var.auth_mode != "oidc" || alltrue([
+        for key in [
+          "OT_SECURITY__OIDC_ISSUER_URL",
+          "OT_SECURITY__OIDC_JWKS_URL",
+          "OT_SECURITY__OIDC_PUBLIC_BASE_URL",
+          "OT_SECURITY__OIDC_REQUIRED_CLAIM_VALUE",
+        ] : trimspace(try(var.environment_variables[key], "")) != ""
+      ])
+      error_message = "OIDC mode requires issuer, JWKS, public base URL, and entitlement claim value in environment_variables."
     }
   }
 

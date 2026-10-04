@@ -182,7 +182,7 @@ terraform plan -out=open-transcribe.tfplan
 terraform apply open-transcribe.tfplan
 ```
 
-Terraform rejects empty secrets, missing MCP bearer authentication, and a configuration without any provider API key. It also forces production mode, HTTPS sources, public-URL SSRF protections, bearer authentication, and port 8000.
+Terraform rejects empty secrets, incomplete MCP authentication, and a configuration without any provider API key. It also forces production mode, HTTPS sources, public-URL SSRF protections, the selected bearer or OIDC mode, and port 8000.
 
 Get the endpoints:
 
@@ -191,7 +191,7 @@ terraform output -raw mcp_endpoint
 terraform output -raw health_endpoint
 ```
 
-The Scaleway container is `public` at the platform layer because MCP clients do not natively send Scaleway's private-container `X-Auth-Token`. OpenTranscribe's bearer middleware protects `/mcp`; `/healthz` remains available to the platform probe.
+The Scaleway container is `public` at the platform layer because MCP clients do not natively send Scaleway's private-container `X-Auth-Token`. OpenTranscribe protects `/mcp` with the selected bearer or OIDC mode; `/healthz` remains available to the platform probe. For ChatGPT connections through an identity provider, follow [OIDC authentication](auth-oidc.md) before setting `auth_mode = "oidc"`.
 
 ## Optional temporary result store
 

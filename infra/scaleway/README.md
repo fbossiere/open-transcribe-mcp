@@ -4,7 +4,7 @@ This root module deploys OpenTranscribe MCP on Scaleway Serverless Containers. I
 
 - a private Container Registry namespace;
 - a Serverless Containers namespace;
-- one public-HTTPS Serverless Container protected by OpenTranscribe bearer authentication;
+- one public-HTTPS Serverless Container protected by OpenTranscribe bearer or OIDC authentication;
 - optional private Object Storage, lifecycle deletion, and a dedicated IAM application for stored results.
 
 The registry must contain the selected image before the final apply. See
@@ -20,7 +20,7 @@ Terraform authenticates as a Scaleway IAM application through `SCW_ACCESS_KEY` a
 
 Scaleway Secret Manager is not created here because Serverless Containers do not currently expose a native Terraform reference from a container environment variable to a Secret Manager version. Creating duplicate Secret Manager objects would not remove the state exposure or inject them into the workload.
 
-The module rejects empty secrets, requires MCP bearer authentication, and requires at least one configured provider key. This prevents successful infrastructure deployment followed by a container crash caused by empty values.
+The module rejects empty secrets, requires MCP authentication, and requires at least one configured provider key. Bearer mode requires a bearer token; OIDC mode requires the issuer, JWKS, public base URL, and entitlement claim value in `environment_variables`. See [OIDC authentication](../../docs/auth-oidc.md) before changing the deployed mode.
 
 ## Result-store isolation
 

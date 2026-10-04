@@ -4,10 +4,13 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
-## [1.2.0] - 2026-09-16
+## [1.2.0] - 2026-10-04
+
 
 ### Added
 
+- OIDC resource-server authentication with issuer, audience, scope and entitlement validation, plus Terraform configuration for external identity providers.
+- A French Scribe v2 conversation recipe with explicit diarization, segment timestamps and strict capability checking.
 - **A Linux desktop distribution.** `open-transcribe-assistant_<version>-<revision>_amd64.deb` bundles the Python runtime, the transcription engine, and a native PySide6 setup application, so a user can install from a file manager, add a provider key, and connect a local MCP client without Python, `uv`, or editing configuration files. The release publishes the package with a SHA-256 checksum, a CycloneDX SBOM, a provenance record, and a GitHub build attestation tied to the artifact digest and source revision. Documented in `docs/desktop.md`; its evidence sheet is `docs/desktop-acceptance.md`, where every scenario starts at *Not tested*.
 - **A local STDIO transport.** `open-transcribe-mcp serve --transport stdio --config <path>` runs one client-owned engine process that opens no network socket and uses stdout exclusively for MCP messages. Startup validation is now transport-aware: STDIO is authenticated by the local process and session boundary and refuses a bearer token, while HTTP keeps its existing authenticated, stateless contract unchanged. Both transports build the same services and expose the same five tools.
 - **A managed desktop configuration mode.** Settings live in a closed, versioned TOML schema under `$XDG_CONFIG_HOME/open-transcribe-mcp/desktop/`, written atomically under a per-installation lock with ownership and permission checks made on opened descriptors. Provider keys live in Secret Service and are resolved inside the engine; the configuration holds references, never values. Managed mode ignores ambient `OT_*` variables and a working-directory `.env`, so a client-launched engine cannot be steered by the shell that started the client.
@@ -36,12 +39,14 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- Normalize Scribe French language codes (`fra` and `fre`) to canonical `fr`.
 - **Setup could not be completed.** *Enable connection* and *Finish* were prepared before the window switched to their step, and switching steps reset the primary action to disabled, so both stayed unusable whatever the chosen client. A step now records its readiness and the window reads it when it switches pages.
 - The setup window reserved the height of its longest step on every step, leaving short steps scrolling inside a mostly empty page, and the returning-user status page clipped horizontally at the smallest supported window size. The clipping check now exercises each page while it is shown, not only the one that happens to be current.
 - Styling a check box or a radio button through the stylesheet made its indicator disappear, so options were readable but their selected state was not. Both are left to the style that draws them.
 
 ### Security
 
+- Update locked PyJWT to 2.15.1 and urllib3 to 2.8.0 to incorporate their published security fixes.
 - Apply available Debian package fixes in a shared Docker base stage so the builder and runtime do not retain vulnerabilities patched after the pinned Python image was published.
 
 ## [1.1.0] - 2026-09-07

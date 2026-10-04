@@ -44,11 +44,22 @@ variable "image_name" {
 variable "image_tag" {
   description = "Image tag to deploy. Use an immutable release or commit tag, never latest."
   type        = string
-  default     = "1.0.0"
+  default     = "1.2.0"
 
   validation {
     condition     = var.image_tag != "latest" && can(regex("^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$", var.image_tag))
     error_message = "image_tag must be a valid immutable image tag and cannot be latest."
+  }
+}
+
+variable "auth_mode" {
+  description = "HTTP authentication mode: bearer or OIDC resource-server validation."
+  type        = string
+  default     = "bearer"
+
+  validation {
+    condition     = contains(["bearer", "oidc"], var.auth_mode)
+    error_message = "auth_mode must be bearer or oidc."
   }
 }
 
@@ -89,8 +100,8 @@ variable "secret_environment_variables" {
   }
 
   validation {
-    condition     = trimspace(try(var.secret_environment_variables["OT_SECURITY__BEARER_TOKEN"], "")) != ""
-    error_message = "secret_environment_variables must contain a non-empty OT_SECURITY__BEARER_TOKEN."
+    condition     = var.auth_mode != "bearer" || trimspace(try(var.secret_environment_variables["OT_SECURITY__BEARER_TOKEN"], "")) != ""
+    error_message = "Bearer mode requires a non-empty OT_SECURITY__BEARER_TOKEN."
   }
 
   validation {
