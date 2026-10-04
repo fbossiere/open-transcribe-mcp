@@ -50,6 +50,7 @@ packaging = [
 dev = [
   "coverage[toml]>=7.10,<8",
   "mkdocs>=1.6,<2",
+  "mkdocs-material>=9.6,<10",
   "mypy>=1.17,<3",
   "pip-audit>=2.9,<3",
   "pytest>=9.0.3,<10",
