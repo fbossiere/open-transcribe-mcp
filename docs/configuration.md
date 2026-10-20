@@ -1,6 +1,6 @@
 # Configuration and service combinations
 
-This guide describes the released **1.2.1** settings and the Scaleway root module. Choose your
+This guide describes the released **1.2.2** settings and the Scaleway root module. Choose your
 hosting mode, provider credentials, MCP authentication and result storage independently.
 A provider key pays for transcription; it is never the credential a client uses to access MCP.
 
@@ -112,7 +112,7 @@ retention mode deliberately. Do not put real credentials in `terraform.tfvars.ex
 ```hcl
 project_id = "00000000-0000-0000-0000-000000000000"
 region     = "fr-par"
-image_tag  = "1.2.1"
+image_tag  = "1.2.2"
 auth_mode  = "bearer"
 
 environment_variables = {

@@ -28,7 +28,7 @@ consistent transcript your MCP client can use anywhere.
 
 </div>
 
-<p class="ot-release"><span class="ot-release-dot" aria-hidden="true"></span> Stable v1.2.1 <span aria-hidden="true">/</span> Apache 2.0 <span aria-hidden="true">/</span> Self-hosted</p>
+<p class="ot-release"><span class="ot-release-dot" aria-hidden="true"></span> Stable v1.2.2 <span aria-hidden="true">/</span> Apache 2.0 <span aria-hidden="true">/</span> Self-hosted</p>
 
 </div>
 

@@ -137,11 +137,11 @@ Use the published image and the private environment file from the quickstart:
 docker run --rm --env-file .env \
   -e OT_ENVIRONMENT=prod -e OT_HOST=0.0.0.0 \
   -p 127.0.0.1:8000:8000 \
-  ghcr.io/fbossiere/open-transcribe-mcp:1.2.1
+  ghcr.io/fbossiere/open-transcribe-mcp:1.2.2
 ```
 
 This binds the host port locally; put an HTTPS proxy in front when hosting remotely. You can also
-build from source with `docker build -t open-transcribe-mcp:1.2.1 .`. Inject provider credentials
+build from source with `docker build -t open-transcribe-mcp:1.2.2 .`. Inject provider credentials
 at runtime. The image includes the `s3` extra, but result storage stays disabled unless configured.
 
 ## Deploy on Scaleway
@@ -154,7 +154,7 @@ probes. It can optionally add a TTL-bound result bucket and runtime identity.
    [documented IAM permissions](docs/deploy-scaleway.md#1-create-the-deployment-api-key).
    Supply `SCW_ACCESS_KEY` and `SCW_SECRET_KEY` to the deployment shell.
 2. Copy `infra/scaleway/terraform.tfvars.example` to `terraform.tfvars` in that directory.
-   Fill your project ID, provider keys, authentication settings and `image_tag = "1.2.1"`.
+   Fill your project ID, provider keys, authentication settings and `image_tag = "1.2.2"`.
    The template configures ElevenLabs and Groq; review the ElevenLabs retention choice before use.
 3. Bootstrap the registry, copy the public release image into it, then review and apply the
    complete deployment. In `infra/scaleway`:
@@ -167,7 +167,7 @@ probes. It can optionally add a TTL-bound result bucket and runtime identity.
    printf '%s' "$SCW_SECRET_KEY" | docker login "${REGISTRY_ENDPOINT%%/*}" \
      --username nologin --password-stdin
    docker buildx imagetools create --tag "$IMAGE_REFERENCE" \
-     ghcr.io/fbossiere/open-transcribe-mcp:1.2.1
+     ghcr.io/fbossiere/open-transcribe-mcp:1.2.2
    terraform plan -out=open-transcribe.tfplan
    terraform apply open-transcribe.tfplan
    terraform output -raw mcp_endpoint
@@ -230,7 +230,7 @@ The [publication protocol](docs/releasing.md) is the maintainer runbook: semanti
 version coherence, local checks, release PR, signed tag from reviewed `main`, automated
 publication, artifact verification and recovery after partial failure.
 
-Git tags use `v1.2.1`; Python/MCP metadata and image tags use `1.2.1`. The workflow publishes
+Git tags use `v1.2.2`; Python/MCP metadata and image tags use `1.2.2`. The workflow publishes
 PyPI, the MCP Registry, GHCR and the Linux package, then creates an immutable GitHub release
 with checksums and provenance. Each deployment chooses its own version and configuration.
 For Scaleway upgrades, copy the chosen release into the private registry, update `image_tag`
