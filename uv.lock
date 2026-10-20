@@ -1151,11 +1151,12 @@ wheels = [
 
 [[package]]
 name = "open-transcribe-mcp"
-version = "1.2.1"
+version = "1.2.2"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
     { name = "httpx" },
+    { name = "mcp" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
@@ -1207,6 +1208,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28,<1" },
     { name = "jeepney", marker = "extra == 'managed'", specifier = ">=0.9,<1" },
     { name = "keyring", marker = "extra == 'managed'", specifier = ">=25.6,<26" },
+    { name = "mcp", specifier = ">=2.2,<3" },
     { name = "mkdocs", marker = "extra == 'dev'", specifier = ">=1.6,<2" },
     { name = "mkdocs-material", marker = "extra == 'dev'", specifier = ">=9.6,<10" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.17,<3" },

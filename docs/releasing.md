@@ -1,6 +1,6 @@
 # Publication protocol
 
-This is the maintainer runbook for a public release. The current stable version is **1.2.1**.
+This is the maintainer runbook for a public release. The current stable version is **1.2.2**.
 Publishing artifacts and updating a Scaleway deployment are separate operations: the release
 workflow has no Scaleway deployment credentials. For runtime updates, follow the
 [Scaleway guide](deploy-scaleway.md#upgrades-configuration-changes-and-rollback).
@@ -15,9 +15,9 @@ without creating a release.
 
 | Surface | Example | Meaning |
 | --- | --- | --- |
-| Git tag / GitHub release | `v1.2.1` | Reviewed source revision; protected against replacement |
-| Python package / MCP metadata | `1.2.1` | Immutable registry version |
-| OCI image tag | `1.2.1` | Release image; verify its digest before deployment |
+| Git tag / GitHub release | `v1.2.2` | Reviewed source revision; protected against replacement |
+| Python package / MCP metadata | `1.2.2` | Immutable registry version |
+| OCI image tag | `1.2.2` | Release image; verify its digest before deployment |
 | OCI image digest | `sha256:…` | Exact image/index content recorded in `container-digest.txt` |
 | GHCR aliases | `1`, `latest` | Moving convenience tags; avoid them for production pins |
 
@@ -77,10 +77,10 @@ uv run mkdocs build --strict
 uv run pip-audit
 uv build
 uv run python scripts/check_distribution.py
-uv run python scripts/check_release_metadata.py --tag v1.2.1
+uv run python scripts/check_release_metadata.py --tag v1.2.2
 ```
 
-Replace `v1.2.1` with the intended new version when preparing the next release. The metadata
+Replace `v1.2.2` with the intended new version when preparing the next release. The metadata
 checker rejects mismatches between the tag, runtime/package versions, registry metadata,
 changelog, supported major and public examples. Keep `dist/` limited to the wheel and source
 archive for the version being checked. Headless desktop tests need the Qt runtime libraries
@@ -100,13 +100,13 @@ git fetch origin main --tags
 git switch main
 git pull --ff-only origin main
 git status --short
-uv run python scripts/check_release_metadata.py --tag v1.2.1
-git tag --sign v1.2.1 --message "OpenTranscribe MCP v1.2.1"
-git verify-tag v1.2.1
-git push origin v1.2.1
+uv run python scripts/check_release_metadata.py --tag v1.2.2
+git tag --sign v1.2.2 --message "OpenTranscribe MCP v1.2.2"
+git verify-tag v1.2.2
+git push origin v1.2.2
 ```
 
-These commands illustrate creation of a **new** version. The current `v1.2.1` already exists;
+These commands illustrate creation of a **new** version. The current `v1.2.2` already exists;
 do not recreate it. Stop if the tree is dirty, the tag exists, or the intended release commit is
 not the reviewed source. Record the tag's resolved commit, not just its name.
 
@@ -146,11 +146,11 @@ For the current stable release, download its assets into an empty temporary dire
 
 ```bash
 RELEASE_ASSETS="$(mktemp -d)"
-gh release download v1.2.1 --repo fbossiere/open-transcribe-mcp --dir "$RELEASE_ASSETS"
+gh release download v1.2.2 --repo fbossiere/open-transcribe-mcp --dir "$RELEASE_ASSETS"
 cd "$RELEASE_ASSETS"
 sha256sum --check SHA256SUMS
 docker buildx imagetools inspect "$(cat container-digest.txt)"
-gh attestation verify open-transcribe-assistant_1.2.1-1_amd64.deb --repo fbossiere/open-transcribe-mcp
+gh attestation verify open-transcribe-assistant_1.2.2-1_amd64.deb --repo fbossiere/open-transcribe-mcp
 ```
 
 Also compare the Python files' SHA-256 hashes with the exact-version PyPI JSON endpoint and
@@ -181,7 +181,7 @@ When **both** PyPI and MCP Registry publication succeeded, but a later artifact 
 workflow-only fix can merge into `main`. Dispatch that corrected workflow against the existing tag:
 
 ```bash
-gh workflow run release.yml --repo fbossiere/open-transcribe-mcp --ref main -f tag=v1.2.1
+gh workflow run release.yml --repo fbossiere/open-transcribe-mcp --ref main -f tag=v1.2.2
 ```
 
 The repair rebuilds the immutable tagged source, requires its wheel/source hashes to match PyPI

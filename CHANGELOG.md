@@ -4,7 +4,15 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
-### Documentation
+## [1.2.2] - 2026-10-20
+
+### Security
+
+- Require MCP 2.2 or newer and update the locked MCP packages to 2.2.0 to address
+  CVE-2026-59951. The minimum applies to Python package installations as well as the
+  locked container and desktop distributions.
+
+### Changed
 
 - Record the released v1.2.1 Linux desktop package in its installation guide and repair the
   changelog comparison links so Unreleased changes start at the latest published version.
@@ -134,7 +142,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Docker, Scaleway, provider, privacy, security, Plaud, and ChatGPT/Drive documentation;
 - unit, provider contract, security, and MCP transport tests plus release CI.
 
-[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.1.0...v1.2.1
 [1.2.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v1.2.0
 [1.1.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v1.1.0
