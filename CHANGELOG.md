@@ -6,6 +6,9 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Documentation
 
+- Record the released v1.2.1 Linux desktop package in its installation guide and repair the
+  changelog comparison links so Unreleased changes start at the latest published version.
+
 - Redesign the documentation site with a responsive Material theme, grouped sidebar navigation, light/dark palettes, an accessible transcription diagram and task-oriented setup links. Keep existing page URLs and serve fonts/assets without third-party telemetry.
 
 - Expand the README with Scaleway deployment, provider/authentication/storage combinations and configuration ownership. Add a canonical configuration guide and complete the release protocol, including immutable tags, partial-publication recovery, image digest verification and deployment updates.
@@ -131,7 +134,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Docker, Scaleway, provider, privacy, security, Plaud, and ChatGPT/Drive documentation;
 - unit, provider contract, security, and MCP transport tests plus release CI.
 
-[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.1.0...v1.2.1
 [1.2.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v1.2.0
 [1.1.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v1.1.0
 [1.0.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v1.0.0

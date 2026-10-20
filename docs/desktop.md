@@ -1,7 +1,7 @@
 # OpenTranscribe Setup on Linux
 
-**Status: proposed for the first desktop release.** The package described here is built by the
-release workflow; the acceptance evidence for it is tracked in
+**Status: released in v1.2.1 for Ubuntu 24.04 LTS on amd64.** The package described here is built
+by the release workflow; the acceptance evidence for it is tracked in
 [desktop-acceptance.md](desktop-acceptance.md), where every scenario starts at *Not tested*.
 
 OpenTranscribe Setup is an optional desktop application. It configures the OpenTranscribe
