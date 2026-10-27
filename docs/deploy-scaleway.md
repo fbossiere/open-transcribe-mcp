@@ -141,7 +141,7 @@ cp terraform.tfvars.example terraform.tfvars
 ```
 
 The example configures ElevenLabs `scribe-v2` by default with Groq available for requests that
-fit its capabilities. Fill the real `project_id`, a release `image_tag` (currently `1.2.2`),
+fit its capabilities. Fill the real `project_id`, a release `image_tag` (currently `1.2.3`),
 provider credentials and a strong MCP bearer token. Use `auth_mode = "oidc"` only after completing
 [OIDC configuration](auth-oidc.md); provider credentials remain necessary in either mode.
 Protect the private file with `chmod 600 terraform.tfvars`.
@@ -214,7 +214,7 @@ The following starts with a version tag; replace it with that verified digest re
 exact copy:
 
 ```bash
-PUBLIC_IMAGE="ghcr.io/fbossiere/open-transcribe-mcp:1.2.2"
+PUBLIC_IMAGE="ghcr.io/fbossiere/open-transcribe-mcp:1.2.3"
 docker buildx imagetools inspect "$PUBLIC_IMAGE"
 docker buildx imagetools create --tag "$IMAGE_REFERENCE" "$PUBLIC_IMAGE"
 docker buildx imagetools inspect "$IMAGE_REFERENCE"
@@ -226,7 +226,7 @@ architecture manifest when comparing against the release index digest. Record th
 private-registry digest in your private `terraform.tfvars`:
 
 ```hcl
-image_tag    = "1.2.2"
+image_tag    = "1.2.3"
 image_digest = "sha256:REPLACE-WITH-THE-64-HEX-DIGEST"
 ```
 

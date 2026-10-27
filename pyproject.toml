@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "open-transcribe-mcp"
-version = "1.2.2"
+version = "1.2.3"
 description = "Provider-independent speech-to-text over MCP."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -18,9 +18,15 @@ classifiers = [
   "Topic :: Multimedia :: Sound/Audio :: Speech",
 ]
 dependencies = [
-  "fastmcp>=4,<5",
+  "authlib>=1.9.1",
+  "certifi>=2026.10.23",
+  "dnspython>=2.9.0",
+  "fastmcp>=4.1.4,<5",
+  "filelock>=4.2.1",
   "httpx>=0.28,<1",
-  "mcp>=2.2,<3",
+  "mcp>=2.3,<3",
+  "msgpack>=1.2.3",
+  "opentelemetry-api>=1.45.1",
   "pydantic>=2,<3",
   "pydantic-settings>=2,<3",
   "pyyaml>=6,<7",
@@ -47,6 +53,7 @@ desktop = [
 packaging = [
   "cyclonedx-bom>=7,<8",
   "pyinstaller>=6.11,<7",
+  "setuptools>=84.1.0",
 ]
 dev = [
   "coverage[toml]>=7.10,<8",

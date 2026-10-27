@@ -4,6 +4,16 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-10-27
+
+### Security
+
+- Update FastMCP to 4.1.4, MCP to 2.3.0, certifi to 2026.10.23,
+  Authlib to 1.9.1, dnspython to 2.9.0, filelock to 4.2.4, msgpack to
+  1.2.4, OpenTelemetry API to 1.45.1, openapi-pydantic to 0.6.0 and
+  packaging-only setuptools to 84.2.1. Patched minimums are explicit so
+  an upgrade cannot retain a vulnerable transitive version already installed.
+
 ## [1.2.2] - 2026-10-20
 
 ### Security
@@ -142,7 +152,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Docker, Scaleway, provider, privacy, security, Plaud, and ChatGPT/Drive documentation;
 - unit, provider contract, security, and MCP transport tests plus release CI.
 
-[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.2.3...HEAD
+[1.2.3]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/fbossiere/open-transcribe-mcp/compare/v1.1.0...v1.2.1
 [1.2.0]: https://github.com/fbossiere/open-transcribe-mcp/releases/tag/v1.2.0
