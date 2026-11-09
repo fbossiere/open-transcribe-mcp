@@ -51,7 +51,7 @@ desktop = [
   "tomli-w>=1.2,<2",
 ]
 packaging = [
-  "cyclonedx-bom>=7,<8",
+  "cyclonedx-bom>=7,<9",
   "pyinstaller>=6.11,<7",
   "setuptools>=84.1.0",
 ]
